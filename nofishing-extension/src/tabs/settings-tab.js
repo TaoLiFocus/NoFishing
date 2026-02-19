@@ -11,6 +11,84 @@ async function initSettingsTab() {
     setupSettingsEventListeners();
 }
 
+// Track if event listeners have been set up
+let settingsEventListenersSetup = false;
+
+/**
+ * Setup settings tab event listeners (only once)
+ */
+function setupSettingsEventListeners() {
+    // Prevent duplicate event listeners
+    if (settingsEventListenersSetup) {
+        return;
+    }
+    settingsEventListenersSetup = true;
+
+    // Auto-block toggle
+    const autoBlockToggle = document.getElementById('auto-block-toggle');
+    if (autoBlockToggle && !autoBlockToggle.hasAttribute('data-listener-set')) {
+        autoBlockToggle.setAttribute('data-listener-set', 'true');
+        autoBlockToggle.addEventListener('change', (e) => {
+            updateSetting('autoBlock', e.target.checked);
+        });
+    }
+
+    // Notifications toggle
+    const notificationsToggle = document.getElementById('notifications-toggle');
+    if (notificationsToggle && !notificationsToggle.hasAttribute('data-listener-set')) {
+        notificationsToggle.setAttribute('data-listener-set', 'true');
+        notificationsToggle.addEventListener('change', (e) => {
+            updateSetting('showNotifications', e.target.checked);
+        });
+    }
+
+    // Auto-scan toggle
+    const autoScanToggle = document.getElementById('auto-scan-toggle');
+    if (autoScanToggle && !autoScanToggle.hasAttribute('data-listener-set')) {
+        autoScanToggle.setAttribute('data-listener-set', 'true');
+        autoScanToggle.addEventListener('change', (e) => {
+            updateSetting('autoScan', e.target.checked);
+        });
+    }
+
+    // Sensitivity dropdown
+    const sensitivitySelect = document.getElementById('sensitivity-select');
+    if (sensitivitySelect && !sensitivitySelect.hasAttribute('data-listener-set')) {
+        sensitivitySelect.setAttribute('data-listener-set', 'true');
+        sensitivitySelect.addEventListener('change', (e) => {
+            updateSetting('sensitivity', e.target.value);
+        });
+    }
+
+    // Update token button
+    const updateTokenBtn = document.getElementById('update-token-btn');
+    if (updateTokenBtn && !updateTokenBtn.hasAttribute('data-listener-set')) {
+        updateTokenBtn.setAttribute('data-listener-set', 'true');
+        updateTokenBtn.addEventListener('click', showLoginModal);
+    }
+
+    // Logout button
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn && !logoutBtn.hasAttribute('data-listener-set')) {
+        logoutBtn.setAttribute('data-listener-set', 'true');
+        logoutBtn.addEventListener('click', handleLogout);
+    }
+
+    // Clear cache button
+    const clearCacheBtn = document.getElementById('clear-cache-btn');
+    if (clearCacheBtn && !clearCacheBtn.hasAttribute('data-listener-set')) {
+        clearCacheBtn.setAttribute('data-listener-set', 'true');
+        clearCacheBtn.addEventListener('click', handleClearCache);
+    }
+
+    // Clear history button
+    const clearHistoryBtn = document.getElementById('clear-history-settings-btn');
+    if (clearHistoryBtn && !clearHistoryBtn.hasAttribute('data-listener-set')) {
+        clearHistoryBtn.setAttribute('data-listener-set', 'true');
+        clearHistoryBtn.addEventListener('click', handleClearHistory);
+    }
+}
+
 /**
  * Load settings values
  */

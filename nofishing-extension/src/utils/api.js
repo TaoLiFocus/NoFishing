@@ -186,11 +186,23 @@ class ApiClient {
     }
 
     /**
-     * Set API key
+     * Set and verify API key
      */
     async setApiKey(apiKey) {
+        // Temporarily set the key for verification
         this.apiKey = apiKey;
-        await this.setStorageData({ apiKey });
+
+        // Verify the key by making a health check request
+        try {
+            await this.healthCheck();
+            // If successful, save to storage
+            await this.setStorageData({ apiKey });
+            return true;
+        } catch (error) {
+            // Clear the invalid key
+            this.apiKey = null;
+            throw new Error('Invalid API Token: ' + error.message);
+        }
     }
 
     /**

@@ -188,6 +188,8 @@ async function addToWhitelist() {
         if (error.message === 'UNAUTHORIZED') {
             showToast('请先登录', 'error');
             showLoginModal();
+        } else if (error.message.includes('fetch') || error.message.includes('404') || error.message.includes('405')) {
+            showToast('功能开发中，后端API暂未实现', 'info');
         } else {
             showToast('添加失败: ' + error.message, 'error');
         }
@@ -217,6 +219,8 @@ async function addToBlacklist() {
         if (error.message === 'UNAUTHORIZED') {
             showToast('请先登录', 'error');
             showLoginModal();
+        } else if (error.message.includes('fetch') || error.message.includes('404') || error.message.includes('405')) {
+            showToast('功能开发中，后端API暂未实现', 'info');
         } else {
             showToast('添加失败: ' + error.message, 'error');
         }
