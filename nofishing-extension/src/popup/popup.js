@@ -2,6 +2,9 @@
  * NoFishing Popup Script - Redesigned with Tabbed Interface
  */
 
+// Track authentication state
+let isAuthenticated = false;
+
 // Initialize popup
 document.addEventListener('DOMContentLoaded', init);
 
@@ -19,8 +22,18 @@ async function init() {
     // Setup tabs
     setupTabs();
 
-    // Check authentication
-    await checkAuth();
+    // Check authentication FIRST before anything else
+    const authResult = await checkAuth();
+
+    // If not authenticated, don't initialize anything else
+    if (!authResult) {
+        console.log('[NoFishing] Not authenticated, blocking operations');
+        showLoginRequiredOverlay();
+        return;
+    }
+
+    // Only proceed if authenticated
+    isAuthenticated = true;
 
     // Health check
     await checkHealth();
@@ -69,27 +82,103 @@ function setupTabs() {
 
 /**
  * Check authentication status
+ * @returns {boolean} true if authenticated, false otherwise
  */
 async function checkAuth() {
     const result = await chrome.storage.local.get(['apiToken', 'apiKey']);
 
     const tokenStatus = document.getElementById('tokenStatus');
+    const hasCredentials = result.apiToken || result.apiKey;
+
     if (tokenStatus) {
         const dot = tokenStatus.querySelector('.status-dot');
         const text = tokenStatus.querySelector('.status-text');
 
-        if (result.apiToken || result.apiKey) {
-            if (dot) dot.classList.add('online');
+        if (hasCredentials) {
+            if (dot) {
+                dot.classList.remove('offline');
+                dot.classList.add('online');
+            }
             if (text) text.textContent = '已登录';
         } else {
-            if (dot) dot.classList.add('offline');
+            if (dot) {
+                dot.classList.remove('online');
+                dot.classList.add('offline');
+            }
             if (text) text.textContent = '未登录';
-
-            // Show login modal after a short delay
-            setTimeout(() => {
-                showLoginModal();
-            }, 500);
         }
+    }
+
+    // If not authenticated, show login modal immediately
+    if (!hasCredentials) {
+        setTimeout(() => {
+            showLoginModal();
+        }, 100);
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * Show login required overlay
+ * Blocks all UI operations until user logs in
+ */
+function showLoginRequiredOverlay() {
+    // Check if overlay already exists
+    if (document.getElementById('loginRequiredOverlay')) {
+        return;
+    }
+
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'loginRequiredOverlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(2px);
+    `;
+
+    overlay.innerHTML = `
+        <div style="text-align: center; color: white; padding: 30px;">
+            <div style="font-size: 48px; margin-bottom: 20px;">🔐</div>
+            <h2 style="margin-bottom: 10px;">需要登录</h2>
+            <p style="opacity: 0.9; margin-bottom: 20px;">请使用 API Token 登录以使用 NoFishing 扩展</p>
+            <button id="overlayLoginBtn" style="
+                padding: 12px 30px;
+                background: #3B82F6;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 16px;
+                cursor: pointer;
+            ">立即登录</button>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // Setup login button
+    document.getElementById('overlayLoginBtn').addEventListener('click', () => {
+        showLoginModal();
+    });
+}
+
+/**
+ * Hide login required overlay
+ */
+function hideLoginRequiredOverlay() {
+    const overlay = document.getElementById('loginRequiredOverlay');
+    if (overlay) {
+        overlay.remove();
     }
 }
 
@@ -248,10 +337,20 @@ async function handleLogin() {
             const result = await apiClient.login(username, password);
         }
 
+        // Login successful
         showToast('登录成功', 'success');
         hideLoginModal();
+        hideLoginRequiredOverlay();
+
+        // Update authentication state
+        isAuthenticated = true;
         await checkAuth();
         await loadApiConfig();
+
+        // Initialize tabs now that we're authenticated
+        if (typeof initHomeTab === 'function') {
+            await initHomeTab();
+        }
     } catch (error) {
         console.error('Login failed:', error);
         showToast('登录失败: ' + error.message, 'error');

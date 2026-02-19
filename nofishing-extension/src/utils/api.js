@@ -187,21 +187,34 @@ class ApiClient {
 
     /**
      * Set and verify API key
+     * Uses a detection request to verify the token is valid
      */
     async setApiKey(apiKey) {
         // Temporarily set the key for verification
         this.apiKey = apiKey;
 
-        // Verify the key by making a health check request
+        // Verify the key by making an actual API call that requires authentication
+        // We'll use a simple test URL detection to verify the token works
         try {
-            await this.healthCheck();
-            // If successful, save to storage
+            const testUrl = 'https://example.com';
+            const response = await this.post('/detect', { url: testUrl });
+
+            // If we get here without 401 error, the token is valid
+            console.log('[NoFishing] API Token verified successfully');
             await this.setStorageData({ apiKey });
             return true;
         } catch (error) {
             // Clear the invalid key
             this.apiKey = null;
-            throw new Error('Invalid API Token: ' + error.message);
+            console.error('[NoFishing] API Token verification failed:', error);
+
+            if (error.message === 'UNAUTHORIZED') {
+                throw new Error('API Token无效，请检查后输入是否正确');
+            } else if (error.message && error.message.includes('fetch')) {
+                throw new Error('无法连接到后端服务，请确保服务已启动');
+            } else {
+                throw new Error('API Token验证失败: ' + (error.message || '未知错误'));
+            }
         }
     }
 
@@ -231,27 +244,56 @@ class ApiClient {
     // ==================== Detection API ====================
 
     async detectUrl(url, options = {}) {
-        const mlResult = await this.post('/detect', { url, ...options });
+        try {
+            const mlResult = await this.post('/detect', { url, ...options });
 
-        // Transform backend response to frontend format
-        // Backend: is_phishing, probability, risk_level
-        // Frontend: isPhishing, confidence, riskLevel
-        if (!mlResult) {
-            return {
-                url: url,
-                isPhishing: false,
-                confidence: 0,
-                riskLevel: 'LOW'
+            console.log('[NoFishing] Raw API response:', mlResult);
+
+            // Handle null/undefined response
+            if (!mlResult) {
+                console.error('[NoFishing] API returned null response');
+                return {
+                    url: url,
+                    isPhishing: false,
+                    confidence: 0,
+                    riskLevel: 'LOW'
+                };
+            }
+
+            // Transform backend response to frontend format
+            // Backend: is_phishing, probability, risk_level
+            // Frontend: isPhishing, confidence, riskLevel
+            const result = {
+                url: mlResult.url || url,
+                isPhishing: Boolean(mlResult.is_phishing),
+                confidence: this.extractConfidence(mlResult),
+                riskLevel: mlResult.risk_level || mlResult.riskLevel || 'LOW',
+                processingTimeMs: mlResult.processing_time_ms || mlResult.processingTimeMs || 0
             };
-        }
 
-        return {
-            url: mlResult.url || url,
-            isPhishing: mlResult.is_phishing || false,
-            confidence: mlResult.probability !== undefined ? mlResult.probability : 0,
-            riskLevel: mlResult.risk_level || 'LOW',
-            processingTimeMs: mlResult.processing_time_ms
-        };
+            console.log('[NoFishing] Transformed result:', result);
+            return result;
+        } catch (error) {
+            console.error('[NoFishing] Detection error:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Extract confidence from various possible field names
+     */
+    extractConfidence(mlResult) {
+        // Try different possible field names
+        if (typeof mlResult.probability === 'number') return mlResult.probability;
+        if (typeof mlResult.confidence === 'number') return mlResult.confidence;
+        if (typeof mlResult.score === 'number') return mlResult.score;
+
+        // Log warning if no valid confidence found
+        const confidence = mlResult.probability || mlResult.confidence || mlResult.score;
+        console.warn('[NoFishing] Invalid confidence value:', confidence, 'in response:', mlResult);
+
+        // Return 0 as fallback
+        return 0;
     }
 
     async checkUrl(url) {

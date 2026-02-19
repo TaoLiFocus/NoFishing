@@ -180,18 +180,28 @@ async function addToWhitelist() {
         // Show loading
         showToast('正在添加到白名单...', 'info');
 
-        await apiClient.addToWhitelist(tab.url, '通过扩展添加');
+        const result = await apiClient.addToWhitelist(tab.url, '通过扩展添加');
+        console.log('[NoFishing] Whitelist result:', result);
 
         showToast('已添加到白名单', 'success');
     } catch (error) {
-        console.error('Failed to add to whitelist:', error);
+        console.error('[NoFishing] Failed to add to whitelist:', error);
+
+        // Check specific error types
         if (error.message === 'UNAUTHORIZED') {
-            showToast('请先登录', 'error');
+            showToast('Token已失效，请重新登录', 'error');
+            // Clear invalid token and show login modal
+            await chrome.storage.local.set({ apiToken: null, apiKey: null });
+            if (typeof apiClient !== 'undefined') {
+                await apiClient.init();
+            }
             showLoginModal();
-        } else if (error.message.includes('fetch') || error.message.includes('404') || error.message.includes('405')) {
+        } else if (error.message && (error.message.includes('404') || error.message.includes('Cannot'))) {
             showToast('功能开发中，后端API暂未实现', 'info');
+        } else if (error.message && error.message.includes('fetch')) {
+            showToast('无法连接到后端服务，请确保服务已启动', 'error');
         } else {
-            showToast('添加失败: ' + error.message, 'error');
+            showToast('添加失败: ' + (error.message || '未知错误'), 'error');
         }
     }
 }
@@ -211,18 +221,28 @@ async function addToBlacklist() {
         // Show loading
         showToast('正在添加到黑名单...', 'info');
 
-        await apiClient.addToBlacklist(tab.url, '通过扩展添加');
+        const result = await apiClient.addToBlacklist(tab.url, '通过扩展添加');
+        console.log('[NoFishing] Blacklist result:', result);
 
         showToast('已添加到黑名单', 'success');
     } catch (error) {
-        console.error('Failed to add to blacklist:', error);
+        console.error('[NoFishing] Failed to add to blacklist:', error);
+
+        // Check specific error types
         if (error.message === 'UNAUTHORIZED') {
-            showToast('请先登录', 'error');
+            showToast('Token已失效，请重新登录', 'error');
+            // Clear invalid token and show login modal
+            await chrome.storage.local.set({ apiToken: null, apiKey: null });
+            if (typeof apiClient !== 'undefined') {
+                await apiClient.init();
+            }
             showLoginModal();
-        } else if (error.message.includes('fetch') || error.message.includes('404') || error.message.includes('405')) {
+        } else if (error.message && (error.message.includes('404') || error.message.includes('Cannot'))) {
             showToast('功能开发中，后端API暂未实现', 'info');
+        } else if (error.message && error.message.includes('fetch')) {
+            showToast('无法连接到后端服务，请确保服务已启动', 'error');
         } else {
-            showToast('添加失败: ' + error.message, 'error');
+            showToast('添加失败: ' + (error.message || '未知错误'), 'error');
         }
     }
 }
