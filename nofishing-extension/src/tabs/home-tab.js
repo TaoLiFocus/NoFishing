@@ -23,12 +23,14 @@ async function loadCurrentSiteInfo() {
             return;
         }
 
-        // Get cached result if available
-        const { getCachedResult } = await import('../utils/storage.js');
-        const cached = await getCachedResult(tab.url);
+        // Get cached result from background script
+        const response = await chrome.runtime.sendMessage({
+            action: 'getCachedResult',
+            url: tab.url
+        });
 
-        if (cached) {
-            updateSiteInfo(tab.url, cached);
+        if (response && response.result) {
+            updateSiteInfo(tab.url, response.result);
         } else {
             updateSiteInfo(tab.url, null);
         }

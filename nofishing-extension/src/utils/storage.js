@@ -207,28 +207,27 @@ async function clearCredentials() {
     return removeStorage([STORAGE_KEYS.API_TOKEN, STORAGE_KEYS.API_KEY]);
 }
 
-// Export for use in other files
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        STORAGE_KEYS,
-        DEFAULT_SETTINGS,
-        getStorage,
-        setStorage,
-        removeStorage,
-        getApiToken,
-        setApiToken,
-        getApiKey,
-        setApiKey,
-        getApiUrl,
-        setApiUrl,
-        getSettings,
-        setSettings,
-        getDetectionHistory,
-        addDetectionHistory,
-        clearDetectionHistory,
-        filterDetectionHistory,
-        getStats,
-        incrementStat,
-        clearCredentials
-    };
-}
+// Export to global scope for Chrome extension
+window.getStorage = getStorage;
+window.setStorage = setStorage;
+window.removeStorage = removeStorage;
+window.getApiToken = getApiToken;
+window.setApiToken = setApiToken;
+window.getApiKey = getApiKey;
+window.setApiKey = setApiKey;
+window.getApiUrl = getApiUrl;
+window.setApiUrl = setApiUrl;
+window.getSettings = getSettings;
+window.setSettings = setSettings;
+window.getDetectionHistory = getDetectionHistory;
+window.addDetectionHistory = addDetectionHistory;
+window.clearDetectionHistory = clearDetectionHistory;
+window.filterDetectionHistory = filterDetectionHistory;
+window.getStats = getStats;
+window.incrementStat = incrementStat;
+window.clearCredentials = clearCredentials;
+
+// Aliases for backward compatibility
+window.addHistoryEntry = addDetectionHistory;
+window.clearHistory = clearDetectionHistory;
+window.getHistory = getDetectionHistory;
