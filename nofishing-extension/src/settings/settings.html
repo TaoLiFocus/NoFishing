@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NoFishing 设置</title>
+    <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <button id="backBtn" class="btn-back">
+                <span class="back-icon">←</span>
+                <span>返回</span>
+            </button>
+            <h1>设置</h1>
+        </header>
+
+        <main>
+            <!-- API Configuration -->
+            <section class="settings-section">
+                <h2>API 配置</h2>
+                <div class="setting-item">
+                    <label for="apiUrl">API 地址</label>
+                    <input type="text" id="apiUrl" placeholder="http://localhost:8080/api/v1">
+                    <small>后端 API 服务地址</small>
+                </div>
+                <div class="setting-item">
+                    <label for="apiKey">API Key (可选)</label>
+                    <input type="password" id="apiKey" placeholder="输入 API Key">
+                    <small>如果后端需要认证</small>
+                </div>
+                <button id="testApiBtn" class="btn btn-secondary">测试连接</button>
+                <div id="apiTestResult" class="test-result hidden"></div>
+            </section>
+
+            <!-- Detection Settings -->
+            <section class="settings-section">
+                <h2>检测设置</h2>
+                <div class="setting-item">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="autoScan">
+                        <span>自动扫描</span>
+                    </label>
+                    <small>页面加载时自动检测钓鱼网站</small>
+                </div>
+                <div class="setting-item">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="showNotifications">
+                        <span>显示通知</span>
+                    </label>
+                    <small>检测到钓鱼网站时显示通知</small>
+                </div>
+                <div class="setting-item">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="blockPhishing">
+                        <span>阻止钓鱼网站</span>
+                    </label>
+                    <small>自动阻止访问钓鱼网站</small>
+                </div>
+                <div class="setting-item">
+                    <label for="sensitivity">检测灵敏度</label>
+                    <select id="sensitivity">
+                        <option value="low">低 - 减少误报</option>
+                        <option value="medium" selected>中 - 平衡</option>
+                        <option value="high">高 - 最大保护</option>
+                    </select>
+                </div>
+            </section>
+
+            <!-- Whitelist Management -->
+            <section class="settings-section">
+                <h2>白名单管理</h2>
+                <div class="list-management">
+                    <form id="whitelistForm" class="add-form">
+                        <input type="url" id="whitelistUrl" placeholder="添加域名到白名单..." required>
+                        <button type="submit" class="btn btn-small">添加</button>
+                    </form>
+                    <div id="whitelistItems" class="list-items"></div>
+                </div>
+            </section>
+
+            <!-- Blacklist Management -->
+            <section class="settings-section">
+                <h2>黑名单管理</h2>
+                <div class="list-management">
+                    <form id="blacklistForm" class="add-form">
+                        <input type="url" id="blacklistUrl" placeholder="添加域名到黑名单..." required>
+                        <button type="submit" class="btn btn-small">添加</button>
+                    </form>
+                    <div id="blacklistItems" class="list-items"></div>
+                </div>
+            </section>
+
+            <!-- Data Management -->
+            <section class="settings-section">
+                <h2>数据管理</h2>
+                <div class="setting-item">
+                    <button id="exportDataBtn" class="btn btn-secondary">导出数据</button>
+                    <button id="importDataBtn" class="btn btn-secondary">导入数据</button>
+                    <input type="file" id="importFile" accept=".json" style="display: none;">
+                </div>
+                <div class="setting-item danger">
+                    <button id="resetDataBtn" class="btn btn-danger">重置所有数据</button>
+                    <small>清除所有本地数据</small>
+                </div>
+            </section>
+
+            <!-- About -->
+            <section class="settings-section">
+                <h2>关于</h2>
+                <div class="about-info">
+                    <p><strong>NoFishing</strong> v1.0.0</p>
+                    <p>钓鱼网站防护扩展</p>
+                    <p class="links">
+                        <a href="#" id="docsLink">文档</a> |
+                        <a href="#" id="reportLink">报告问题</a> |
+                        <a href="#" id="sourceLink">源代码</a>
+                    </p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="settings.js"></script>
+</body>
+</html>

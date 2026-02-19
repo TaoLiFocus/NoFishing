@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NoFishing</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <img src="../icons/icon48.png" alt="NoFishing" id="logoImg">
+                <h1>NoFishing</h1>
+            </div>
+            <div class="status" id="apiStatus">
+                <span class="status-dot"></span>
+                <span class="status-text">检查中...</span>
+            </div>
+        </header>
+
+        <main>
+            <section class="current-site">
+                <h2>当前网站</h2>
+                <div class="site-info" id="currentSite">
+                    <p class="site-url" id="currentUrl">-</p>
+                    <p class="site-status" id="currentStatus">-</p>
+                </div>
+                <button id="scanBtn" class="btn btn-primary">
+                    <span class="btn-icon">🔍</span>
+                    <span>扫描当前网站</span>
+                </button>
+            </section>
+
+            <section class="quick-check">
+                <h2>快速检测</h2>
+                <form id="checkForm">
+                    <input
+                        type="url"
+                        id="checkUrl"
+                        placeholder="输入要检测的URL..."
+                        required
+                    >
+                    <button type="submit" class="btn btn-secondary">
+                        <span class="btn-icon">✓</span>
+                        <span>检测</span>
+                    </button>
+                </form>
+                <div id="checkResult" class="check-result hidden"></div>
+            </section>
+
+            <section class="stats">
+                <h2>统计</h2>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-value" id="scannedCount">0</span>
+                        <span class="stat-label">已扫描</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value danger" id="blockedCount">0</span>
+                        <span class="stat-label">已阻止</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <button id="settingsBtn" class="btn btn-text">⚙ <span>设置</span></button>
+            <button id="clearCacheBtn" class="btn btn-text">🗑 <span>清除缓存</span></button>
+        </footer>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>

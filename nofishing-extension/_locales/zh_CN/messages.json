@@ -1,0 +1,174 @@
+{
+  "extensionName": {
+    "message": "NoFishing - 钓鱼网站防护"
+  },
+  "extensionDescription": {
+    "message": "实时钓鱼网站检测与保护"
+  },
+  "popupTitle": {
+    "message": "NoFishing"
+  },
+  "checking": {
+    "message": "检查中..."
+  },
+  "apiOnline": {
+    "message": "API 在线"
+  },
+  "apiOffline": {
+    "message": "API 离线"
+  },
+  "currentSite": {
+    "message": "当前网站"
+  },
+  "readyToScan": {
+    "message": "准备扫描"
+  },
+  "unableToGetUrl": {
+    "message": "无法获取当前URL"
+  },
+  "scanCurrentSite": {
+    "message": "扫描当前网站"
+  },
+  "scanning": {
+    "message": "扫描中..."
+  },
+  "quickCheck": {
+    "message": "快速检测"
+  },
+  "enterUrlToCheck": {
+    "message": "输入要检测的URL..."
+  },
+  "check": {
+    "message": "检测"
+  },
+  "checkFailed": {
+    "message": "检测失败"
+  },
+  "statistics": {
+    "message": "统计"
+  },
+  "scanned": {
+    "message": "已扫描"
+  },
+  "blocked": {
+    "message": "已阻止"
+  },
+  "settings": {
+    "message": "设置"
+  },
+  "clearCache": {
+    "message": "清除缓存"
+  },
+  "phishingDetected": {
+    "message": "检测到钓鱼网站"
+  },
+  "safeToBrowse": {
+    "message": "可安全浏览"
+  },
+  "phishingWarning": {
+    "message": "钓鱼网站警告"
+  },
+  "thisWebsitePhishing": {
+    "message": "该网站已被分类为钓鱼网站。"
+  },
+  "safeWebsite": {
+    "message": "安全网站"
+  },
+  "websiteLegitimate": {
+    "message": "该网站看起来是合法的。"
+  },
+  "riskLevel": {
+    "message": "风险等级"
+  },
+  "confidence": {
+    "message": "置信度"
+  },
+  "unableToGetPageUrl": {
+    "message": "无法获取当前页面URL"
+  },
+  "scanFailed": {
+    "message": "扫描失败："
+  },
+  "settingsNotImplemented": {
+    "message": "设置页面尚未实现"
+  },
+  "cacheCleared": {
+    "message": "缓存已清除"
+  },
+  "failedToClearCache": {
+    "message": "清除缓存失败"
+  },
+  "warningPageTitle": {
+    "message": "警告 - 检测到钓鱼网站"
+  },
+  "thisWebsiteBlocked": {
+    "message": "该网站已被阻止以保护您的安全"
+  },
+  "criticalRisk": {
+    "message": "严重风险"
+  },
+  "blockedUrl": {
+    "message": "已阻止的URL"
+  },
+  "loading": {
+    "message": "加载中..."
+  },
+  "detectionConfidence": {
+    "message": "检测置信度"
+  },
+  "confidenceScore": {
+    "message": "置信度评分"
+  },
+  "whatIsPhishing": {
+    "message": "什么是钓鱼网站？"
+  },
+  "whatIsPhishingDesc": {
+    "message": "钓鱼网站旨在窃取您的个人信息、密码或财务数据。它们经常冒充合法网站和服务。"
+  },
+  "whyWasThisBlocked": {
+    "message": "为什么被阻止？"
+  },
+  "whyWasThisBlockedDesc": {
+    "message": "该网站与已知钓鱼网站模式匹配，包括可疑的URL结构、域名特征或内容指标。"
+  },
+  "goBackToSafety": {
+    "message": "← 返回安全页面"
+  },
+  "closeThisTab": {
+    "message": "关闭此标签页"
+  },
+  "ignoreWarning": {
+    "message": "⚠️ 忽略警告并继续（不推荐）"
+  },
+  "areYouSureToProceed": {
+    "message": "您确定要继续吗？这不推荐。"
+  },
+  "protectedBy": {
+    "message": "由 NoFishing 钓鱼检测系统保护"
+  },
+  "phishingWebsiteDetected": {
+    "message": "检测到钓鱼网站"
+  },
+  "phishingDetectionNotification": {
+    "message": "该网站已被检测为钓鱼网站（风险等级：{risk}，置信度：{confidence}%）。",
+    "description": "通知消息，{risk} 会被替换为风险等级，{confidence} 会被替换为置信度"
+  },
+  "risk_critical": {
+    "message": "严重风险"
+  },
+  "risk_high": {
+    "message": "高风险"
+  },
+  "risk_medium": {
+    "message": "中等风险"
+  },
+  "risk_low": {
+    "message": "低风险"
+  },
+  "risk_safe": {
+    "message": "安全"
+  },
+  "unknownUrl": {
+    "message": "未知URL"
+  }
+}

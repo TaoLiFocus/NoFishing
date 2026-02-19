@@ -1,0 +1,32 @@
+# Flask Core
+Flask==3.0.0
+flask-cors==4.0.0
+Werkzeug==3.0.1
+
+# PyTorch & ML
+torch==2.1.2
+torchvision==0.16.2
+transformers==4.36.2
+
+# URL Processing
+requests==2.31.0
+beautifulsoup4==4.12.2
+lxml==5.1.0
+validators==0.22.0
+
+# ONNX for optimization
+onnx==1.15.0
+onnxruntime==1.16.3
+
+# Redis
+redis==5.0.1
+
+# Utilities
+numpy==1.26.3
+pandas==2.1.4
+scikit-learn==1.4.0
+python-dotenv==1.0.0
+
+# Testing
+pytest==7.4.3
+pytest-cov==4.1.0

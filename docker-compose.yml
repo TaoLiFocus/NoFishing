@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: nofishing-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - nofishing-network
+
+  # Spring Boot Backend
+  backend:
+    build:
+      context: ./nofishing-backend
+      dockerfile: Dockerfile
+    container_name: nofishing-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - ML_SERVICE_BASE_URL=http://ml-api:5000/api/v1
+      - SERVER_PORT=8080
+    depends_on:
+      redis:
+        condition: service_healthy
+      ml-api:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - nofishing-network
+
+  # Flask ML API
+  ml-api:
+    build:
+      context: ./nofishing-ml-api
+      dockerfile: Dockerfile
+    container_name: nofishing-ml-api
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_HOST=0.0.0.0
+      - FLASK_PORT=5000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MODEL_TYPE=pytorch
+    volumes:
+      - ./nofishing-ml-api/models:/app/models:ro
+      - ./nofishing-ml-api/data:/app/data:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - nofishing-network
+
+volumes:
+  redis_data:
+    driver: local
+
+networks:
+  nofishing-network:
+    driver: bridge

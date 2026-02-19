@@ -1,0 +1,43 @@
+# NoFishing Project
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+env/
+
+# Java/Maven
+target/
+*.class
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+*.iml
+.idea/
+
+# Node
+node_modules/
+*.crx
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Models and data (large files)
+nofishing-ml-api/data/
+nofishing-ml-api/models/*.pt
+nofishing-ml-api/models/*.onnx
+
+# Environment
+.env
+.env.local
+
+# Local logs and scripts
+*.log
+*.bat
+*.ps1
+check-services.*

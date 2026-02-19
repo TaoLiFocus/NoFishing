@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="warningPageTitle">警告 - 检测到钓鱼网站</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --danger-color: #D32F2F;
+            --warning-color: #FF9800;
+            --success-color: #4CAF50;
+            --bg-color: #f5f5f5;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .warning-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .warning-header {
+            background: linear-gradient(135deg, var(--danger-color), #B71C1C);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .warning-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .warning-header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .warning-header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .warning-body {
+            padding: 30px;
+        }
+
+        .alert-level {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+        }
+
+        .alert-level.critical {
+            background-color: #FFEBEE;
+            color: #C62828;
+        }
+
+        .alert-level.high {
+            background-color: #FFF3E0;
+            color: #E65100;
+        }
+
+        .alert-level.medium {
+            background-color: #FFF9C4;
+            color: #F57F17;
+        }
+
+        .details-section {
+            background-color: var(--bg-color);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .details-section h3 {
+            font-size: 14px;
+            text-transform: uppercase;
+            color: #757575;
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        .url-display {
+            background-color: white;
+            border-radius: 4px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            word-break: break-all;
+            color: #424242;
+            border-left: 4px solid var(--danger-color);
+        }
+
+        .confidence-bar {
+            height: 8px;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--danger-color), #B71C1C);
+            transition: width 0.5s ease-out;
+        }
+
+        .explanation {
+            line-height: 1.6;
+            color: #424242;
+            margin-bottom: 24px;
+        }
+
+        .explanation strong {
+            color: var(--danger-color);
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 14px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #388E3C;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
+
+        .btn-secondary {
+            background-color: white;
+            color: #424242;
+            border: 2px solid #e0e0e0;
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--bg-color);
+            border-color: #bdbdbd;
+        }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+            color: white;
+            grid-column: 1 / -1;
+        }
+
+        .btn-danger:hover {
+            background-color: #B71C1C;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 16px;
+            color: white;
+            font-size: 12px;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="warning-card">
+            <div class="warning-header">
+                <div class="warning-icon">⛔</div>
+                <h1 data-i18n="phishingWebsiteDetected">检测到钓鱼网站</h1>
+                <p data-i18n="thisWebsiteBlocked">该网站已被阻止以保护您的安全</p>
+            </div>
+
+            <div class="warning-body">
+                <div class="alert-level" id="alertLevel" data-i18n="criticalRisk">严重风险</div>
+
+                <div class="details-section">
+                    <h3 data-i18n="blockedUrl">已阻止的URL</h3>
+                    <div class="url-display" id="urlDisplay" data-i18n="loading">加载中...</div>
+                </div>
+
+                <div class="details-section">
+                    <h3 data-i18n="detectionConfidence">检测置信度</h3>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="flex: 1; font-size: 14px; color: #757575;" data-i18n="confidenceScore">置信度评分</span>
+                        <strong id="confidenceValue" style="font-size: 18px;">95%</strong>
+                    </div>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" id="confidenceFill" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="explanation">
+                    <strong data-i18n="whatIsPhishing">什么是钓鱼网站？</strong><br>
+                    <span data-i18n="whatIsPhishingDesc">钓鱼网站旨在窃取您的个人信息、密码或财务数据。它们经常冒充合法网站和服务。</span><br><br>
+                    <strong data-i18n="whyWasThisBlocked">为什么被阻止？</strong><br>
+                    <span data-i18n="whyWasThisBlockedDesc">该网站与已知钓鱼网站模式匹配，包括可疑的URL结构、域名特征或内容指标。</span>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="goBackBtn" data-i18n="goBackToSafety">← 返回安全页面</button>
+                    <button class="btn btn-secondary" id="closeTabBtn" data-i18n="closeThisTab">关闭此标签页</button>
+                    <button class="btn btn-danger" id="proceedBtn" data-i18n="ignoreWarning">⚠️ 忽略警告并继续（不推荐）</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <span data-i18n="protectedBy">由 NoFishing 钓鱼检测系统保护</span>
+        </div>
+    </div>
+
+    <script>
+        // Apply translations
+        function applyTranslations() {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                const message = chrome.i18n.getMessage(key);
+                if (message) {
+                    el.textContent = message;
+                }
+            });
+            document.title = chrome.i18n.getMessage('warningPageTitle');
+        }
+
+        // Parse URL parameters
+        const params = new URLSearchParams(window.location.search);
+        const url = params.get('url');
+        const risk = params.get('risk');
+        const confidence = params.get('confidence');
+
+        // Apply translations
+        applyTranslations();
+
+        // Update display
+        document.getElementById('urlDisplay').textContent = url || chrome.i18n.getMessage('unknownUrl') || '未知URL';
+
+        if (confidence) {
+            const confidencePercent = Math.round(parseFloat(confidence) * 100);
+            document.getElementById('confidenceValue').textContent = confidencePercent + '%';
+            document.getElementById('confidenceFill').style.width = confidencePercent + '%';
+        }
+
+        // Update alert level
+        const alertLevel = document.getElementById('alertLevel');
+        const riskLevel = risk ? risk.toUpperCase() : 'CRITICAL';
+        const levelKey = 'risk_' + (risk ? risk.toLowerCase() : 'critical');
+        alertLevel.textContent = chrome.i18n.getMessage(levelKey) || riskLevel + ' 风险';
+        alertLevel.className = 'alert-level ' + (risk ? risk.toLowerCase() : 'critical');
+
+        // Button handlers
+        document.getElementById('goBackBtn').addEventListener('click', () => {
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.close();
+            }
+        });
+
+        document.getElementById('closeTabBtn').addEventListener('click', () => {
+            window.close();
+        });
+
+        document.getElementById('proceedBtn').addEventListener('click', () => {
+            const confirmMsg = chrome.i18n.getMessage('areYouSureToProceed') || '您确定要继续吗？这不推荐。';
+            if (confirm(confirmMsg)) {
+                if (url) {
+                    window.location.href = url;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

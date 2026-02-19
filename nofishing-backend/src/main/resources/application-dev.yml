@@ -1,0 +1,17 @@
+# Development Profile Configuration
+spring:
+  profiles:
+    active: dev
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+ml-service:
+  base-url: http://localhost:5000/api/v1
+
+logging:
+  level:
+    com.nofishing: DEBUG
+    org.springframework.web: DEBUG

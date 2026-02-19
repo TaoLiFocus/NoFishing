@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "default_locale": "zh_CN",
+  "name": "NoFishing - 钓鱼网站防护",
+  "version": "1.0.0",
+  "description": "实时钓鱼网站检测与保护",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": [
+    "tabs",
+    "activeTab",
+    "storage",
+    "webNavigation",
+    "scripting"
+  ],
+  "host_permissions": [
+    "http://localhost:8080/*",
+    "https://*/*",
+    "http://*/*"
+  ],
+  "background": {
+    "service_worker": "src/background/background.js"
+  },
+  "action": {
+    "default_popup": "src/popup/popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content/content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["public/warning.html"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
