@@ -73,17 +73,36 @@ class ApiClient {
 
         try {
             const response = await fetch(url, config);
-            const data = await response.json();
 
             if (!response.ok) {
                 if (response.status === 401) {
                     await this.clearCredentials();
                     throw new Error('UNAUTHORIZED');
                 }
-                throw new Error(data.message || `API Error: ${response.status}`);
+
+                // Try to parse error message from response
+                let errorMessage = `API Error: ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.message || errorMessage;
+                } catch (e) {
+                    // Response body is empty or not JSON
+                }
+                throw new Error(errorMessage);
             }
 
-            return data;
+            // Handle empty responses (e.g., 204 No Content)
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                return null;
+            }
+
+            const text = await response.text();
+            if (!text) {
+                return null;
+            }
+
+            return JSON.parse(text);
         } catch (error) {
             if (error.message === 'UNAUTHORIZED') {
                 throw error;
@@ -193,12 +212,34 @@ class ApiClient {
             // Ignore logout errors
         }
         await this.clearCredentials();
+        // Re-initialize to ensure credentials are cleared from memory
+        await this.init();
     }
 
     // ==================== Detection API ====================
 
     async detectUrl(url, options = {}) {
-        return this.post('/detect', { url, ...options });
+        const mlResult = await this.post('/detect', { url, ...options });
+
+        // Transform backend response to frontend format
+        // Backend: is_phishing, probability, risk_level
+        // Frontend: isPhishing, confidence, riskLevel
+        if (!mlResult) {
+            return {
+                url: url,
+                isPhishing: false,
+                confidence: 0,
+                riskLevel: 'LOW'
+            };
+        }
+
+        return {
+            url: mlResult.url || url,
+            isPhishing: mlResult.is_phishing || false,
+            confidence: mlResult.probability !== undefined ? mlResult.probability : 0,
+            riskLevel: mlResult.risk_level || 'LOW',
+            processingTimeMs: mlResult.processing_time_ms
+        };
     }
 
     async checkUrl(url) {

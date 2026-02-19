@@ -138,8 +138,10 @@ async function detectUrl(url) {
  * Add detection to history
  */
 async function addToHistory(result) {
-    chrome.storage.local.get(['detectionHistory'], (data) => {
+    chrome.storage.local.get(['detectionHistory', 'scannedCount', 'blockedCount'], (data) => {
         const history = data.detectionHistory || [];
+        let scannedCount = data.scannedCount || 0;
+        let blockedCount = data.blockedCount || 0;
 
         const entry = {
             id: Date.now(),
@@ -162,7 +164,17 @@ async function addToHistory(result) {
         const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
         const filtered = history.filter(e => e.timestamp > thirtyDaysAgo);
 
-        chrome.storage.local.set({ detectionHistory: filtered });
+        // Increment stats
+        scannedCount += 1;
+        if (result.isPhishing) {
+            blockedCount += 1;
+        }
+
+        chrome.storage.local.set({
+            detectionHistory: filtered,
+            scannedCount: scannedCount,
+            blockedCount: blockedCount
+        });
     });
 }
 

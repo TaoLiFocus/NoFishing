@@ -123,6 +123,7 @@ async function getDetectionHistory() {
  */
 async function addDetectionHistory(entry) {
     const history = await getDetectionHistory();
+    const stats = await getStats();
 
     // Create history entry
     const historyEntry = {
@@ -147,7 +148,15 @@ async function addDetectionHistory(entry) {
     const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
     const filtered = history.filter(entry => entry.timestamp > thirtyDaysAgo);
 
-    return setStorage({ [STORAGE_KEYS.DETECTION_HISTORY]: filtered });
+    // Increment stats
+    const newScannedCount = stats.scanned + 1;
+    const newBlockedCount = entry.isPhishing ? stats.blocked + 1 : stats.blocked;
+
+    return setStorage({
+        [STORAGE_KEYS.DETECTION_HISTORY]: filtered,
+        [STORAGE_KEYS.SCANNED_COUNT]: newScannedCount,
+        [STORAGE_KEYS.BLOCKED_COUNT]: newBlockedCount
+    });
 }
 
 /**
