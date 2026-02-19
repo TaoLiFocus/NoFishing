@@ -1,303 +1,306 @@
 /**
- * NoFishing Popup Script
+ * NoFishing Popup Script - Redesigned with Tabbed Interface
  */
 
-// API Configuration
-const DEFAULT_API_URL = 'http://localhost:8080/api/v1';
-let API_BASE_URL = DEFAULT_API_URL;
-
-// Elements
-const apiStatus = document.getElementById('apiStatus');
-const currentUrl = document.getElementById('currentUrl');
-const currentStatus = document.getElementById('currentStatus');
-const currentSite = document.getElementById('currentSite');
-const scanBtn = document.getElementById('scanBtn');
-const checkForm = document.getElementById('checkForm');
-const checkUrlInput = document.getElementById('checkUrl');
-const checkResult = document.getElementById('checkResult');
-const settingsBtn = document.getElementById('settingsBtn');
-const clearCacheBtn = document.getElementById('clearCacheBtn');
-const scannedCount = document.getElementById('scannedCount');
-const blockedCount = document.getElementById('blockedCount');
-
-// Initialize
+// Initialize popup
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
-    // Load settings first
-    await loadSettings();
-
-    // Handle logo image error
-    const logoImg = document.getElementById('logoImg');
-    if (logoImg) {
-        logoImg.onerror = function() {
-            this.style.display = 'none';
-        };
+    // Initialize toast
+    if (typeof toast !== 'undefined' && toast.init) {
+        toast.init();
     }
 
-    // Load stats
-    loadStats();
+    // Initialize API client
+    if (typeof apiClient !== 'undefined') {
+        await apiClient.init();
+    }
+
+    // Setup tabs
+    setupTabs();
+
+    // Check authentication
+    await checkAuth();
 
     // Health check
     await checkHealth();
 
-    // Get current tab info
-    await getCurrentTabInfo();
-
-    // Setup event listeners
-    setupEventListeners();
+    // Initialize home tab (default)
+    if (typeof initHomeTab === 'function') {
+        await initHomeTab();
+    }
 }
 
 /**
- * Load settings from storage
+ * Setup tabs
  */
-async function loadSettings() {
-    return new Promise((resolve) => {
-        chrome.storage.local.get(['apiUrl'], (result) => {
-            API_BASE_URL = result.apiUrl || DEFAULT_API_URL;
-            resolve();
+function setupTabs() {
+    const tabs = document.querySelectorAll('.tab-btn');
+    const panels = document.querySelectorAll('.tab-panel');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', async () => {
+            const tabName = tab.dataset.tab;
+
+            // Remove active class from all tabs and panels
+            tabs.forEach(t => t.classList.remove('active'));
+            panels.forEach(p => p.classList.remove('active'));
+
+            // Add active class to clicked tab
+            tab.classList.add('active');
+
+            // Show corresponding panel
+            const panel = document.getElementById(`${tabName}-panel`);
+            if (panel) {
+                panel.classList.add('active');
+            }
+
+            // Initialize tab specific content
+            if (tabName === 'home' && typeof initHomeTab === 'function') {
+                await initHomeTab();
+            } else if (tabName === 'history' && typeof initHistoryTab === 'function') {
+                await initHistoryTab();
+            } else if (tabName === 'settings' && typeof initSettingsTab === 'function') {
+                await initSettingsTab();
+            }
         });
     });
 }
 
 /**
- * Setup event listeners
+ * Check authentication status
  */
-function setupEventListeners() {
-    scanBtn.addEventListener('click', scanCurrentSite);
-    checkForm.addEventListener('submit', handleQuickCheck);
-    settingsBtn.addEventListener('click', openSettings);
-    clearCacheBtn.addEventListener('click', clearCache);
+async function checkAuth() {
+    const result = await chrome.storage.local.get(['apiToken', 'apiKey']);
+
+    const tokenStatus = document.getElementById('tokenStatus');
+    if (tokenStatus) {
+        const dot = tokenStatus.querySelector('.status-dot');
+        const text = tokenStatus.querySelector('.status-text');
+
+        if (result.apiToken || result.apiKey) {
+            if (dot) dot.classList.add('online');
+            if (text) text.textContent = '已登录';
+        } else {
+            if (dot) dot.classList.add('offline');
+            if (text) text.textContent = '未登录';
+
+            // Show login modal after a short delay
+            setTimeout(() => {
+                showLoginModal();
+            }, 500);
+        }
+    }
 }
 
 /**
  * Check API health
  */
 async function checkHealth() {
-    try {
-        const response = await fetch(`${API_BASE_URL}/health`);
-        const data = await response.json();
+    const apiStatus = document.getElementById('apiStatus');
+    if (!apiStatus) return;
 
-        if (data.mlService === 'UP') {
-            updateApiStatus('online');
-        } else {
-            updateApiStatus('offline');
-        }
-    } catch (error) {
-        console.error('Health check failed:', error);
-        updateApiStatus('offline');
-    }
-}
-
-/**
- * Update API status indicator
- */
-function updateApiStatus(status) {
     const dot = apiStatus.querySelector('.status-dot');
     const text = apiStatus.querySelector('.status-text');
 
-    dot.classList.remove('online', 'offline');
-    dot.classList.add(status);
-    text.textContent = status === 'online' ? 'API在线' : 'API离线';
-}
+    // Set checking state
+    if (dot) dot.style.backgroundColor = 'rgba(255, 255, 255, 0.4)';
+    if (text) text.textContent = '检查中...';
 
-/**
- * Get current tab info
- */
-async function getCurrentTabInfo() {
     try {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        let data;
+        if (typeof apiClient !== 'undefined') {
+            data = await apiClient.healthCheck();
+        } else {
+            // Fallback to direct fetch
+            const response = await fetch('http://localhost:8080/api/v1/health');
+            data = await response.json();
+        }
 
-        if (tab && tab.url) {
-            currentUrl.textContent = truncateUrl(tab.url, 40);
-            currentStatus.textContent = '准备扫描';
-            currentStatus.className = 'site-status';
+        if (dot) {
+            dot.classList.remove('online', 'offline');
+            if (data.mlService === 'UP' || data.status === 'healthy') {
+                dot.classList.add('online');
+                text.textContent = 'API在线';
+            } else {
+                dot.classList.add('offline');
+                text.textContent = 'API离线';
+            }
         }
     } catch (error) {
-        console.error('Failed to get current tab:', error);
-        currentUrl.textContent = '无法获取URL';
+        console.error('Health check failed:', error);
+        if (dot) {
+            dot.classList.remove('online', 'offline');
+            dot.classList.add('offline');
+        }
+        if (text) text.textContent = 'API离线';
     }
 }
 
 /**
- * Scan current site
+ * Show login modal
  */
-async function scanCurrentSite() {
-    try {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+function showLoginModal() {
+    const modal = document.getElementById('loginModal');
+    if (modal) {
+        modal.classList.remove('hidden');
 
-        if (!tab || !tab.url) {
-            alert('无法获取页面URL');
-            return;
+        // Setup login modal events
+        const closeBtn = document.getElementById('closeLoginModal');
+        const cancelBtn = document.getElementById('cancelLoginBtn');
+        const loginBtn = document.getElementById('loginBtn');
+
+        if (closeBtn && !closeBtn.hasAttribute('data-bound')) {
+            closeBtn.setAttribute('data-bound', 'true');
+            closeBtn.addEventListener('click', hideLoginModal);
         }
 
-        setScanButtonLoading(true);
+        if (cancelBtn && !cancelBtn.hasAttribute('data-bound')) {
+            cancelBtn.setAttribute('data-bound', 'true');
+            cancelBtn.addEventListener('click', hideLoginModal);
+        }
 
-        const result = await detectUrl(tab.url);
+        if (loginBtn && !loginBtn.hasAttribute('data-bound')) {
+            loginBtn.setAttribute('data-bound', 'true');
+            loginBtn.addEventListener('click', handleLogin);
+        }
 
-        if (result) {
-            displayResult(result);
+        // Setup tabs
+        const tabs = modal.querySelectorAll('.login-tab');
+        tabs.forEach(tab => {
+            if (!tab.hasAttribute('data-bound')) {
+                tab.setAttribute('data-bound', 'true');
+                tab.addEventListener('click', (e) => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    e.target.classList.add('active');
+                    switchLoginTab(e.target.dataset.tab);
+                });
+            }
+        });
 
-            // Update stats
-            incrementStats('scanned');
-            if (result.isPhishing) {
-                incrementStats('blocked');
+        // Setup overlay click
+        const overlay = modal.querySelector('.modal-overlay');
+        if (overlay && !overlay.hasAttribute('data-bound')) {
+            overlay.setAttribute('data-bound', 'true');
+            overlay.addEventListener('click', hideLoginModal);
+        }
+    }
+}
+
+/**
+ * Hide login modal
+ */
+function hideLoginModal() {
+    const modal = document.getElementById('loginModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+/**
+ * Switch login tab
+ */
+function switchLoginTab(tabName) {
+    const panels = document.querySelectorAll('.login-panel');
+    panels.forEach(p => p.classList.remove('active'));
+
+    const targetPanel = document.getElementById(tabName + 'Login');
+    if (targetPanel) {
+        targetPanel.classList.add('active');
+    }
+}
+
+/**
+ * Handle login
+ */
+async function handleLogin() {
+    const loginBtn = document.getElementById('loginBtn');
+    const activeTab = document.querySelector('.login-tab.active');
+
+    if (!activeTab) return;
+
+    const tabType = activeTab.dataset.tab;
+    loginBtn.disabled = true;
+    loginBtn.textContent = '登录中...';
+
+    try {
+        if (tabType === 'token') {
+            const tokenInput = document.getElementById('apiTokenInput');
+            const token = tokenInput ? tokenInput.value.trim() : '';
+
+            if (!token) {
+                showToast('请输入 API Token', 'error');
+                return;
+            }
+
+            if (typeof apiClient !== 'undefined') {
+                await apiClient.setApiKey(token);
+            } else {
+                await chrome.storage.local.set({ apiKey: token });
+            }
+        } else {
+            const usernameInput = document.getElementById('usernameInput');
+            const passwordInput = document.getElementById('passwordInput');
+            const username = usernameInput ? usernameInput.value.trim() : '';
+            const password = passwordInput ? passwordInput.value.trim() : '';
+
+            if (!username || !password) {
+                showToast('请输入用户名和密码', 'error');
+                return;
+            }
+
+            if (typeof apiClient !== 'undefined') {
+                const result = await apiClient.login(username, password);
+                await chrome.storage.local.set({ apiToken: result.token });
             }
         }
 
+        showToast('登录成功', 'success');
+        hideLoginModal();
+        await checkAuth();
+        await loadApiConfig();
     } catch (error) {
-        console.error('Scan failed:', error);
-        alert('扫描失败: ' + error.message);
+        console.error('Login failed:', error);
+        showToast('登录失败: ' + error.message, 'error');
     } finally {
-        setScanButtonLoading(false);
+        loginBtn.disabled = false;
+        loginBtn.textContent = '登录';
     }
 }
 
 /**
- * Handle quick check form
+ * Load API configuration (for settings tab)
  */
-async function handleQuickCheck(e) {
-    e.preventDefault();
+async function loadApiConfig() {
+    const result = await chrome.storage.local.get(['apiToken', 'apiKey']);
 
-    const url = checkUrlInput.value.trim();
-    if (!url) return;
+    const tokenDisplay = document.getElementById('token-display');
+    const tokenStatus = document.getElementById('token-status');
 
-    const submitBtn = checkForm.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<span class="spinner"></span>';
-    submitBtn.disabled = true;
-
-    try {
-        const result = await detectUrl(url);
-        displayCheckResult(result);
-    } catch (error) {
-        console.error('Quick check failed:', error);
-        checkResult.innerHTML = '<p style="color: var(--danger-color)">检测失败</p>';
-        checkResult.classList.remove('hidden');
-    } finally {
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-    }
-}
-
-/**
- * Detect URL via API
- */
-async function detectUrl(url) {
-    const response = await fetch(`${API_BASE_URL}/detect`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            url: url,
-            fetchContent: false
-        })
-    });
-
-    if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-    }
-
-    return await response.json();
-}
-
-/**
- * Display scan result in current site section
- */
-function displayResult(result) {
-    const statusClass = result.isPhishing ? 'danger' : 'safe';
-    const statusText = result.isPhishing ? '检测到钓鱼网站' : '安全';
-
-    currentStatus.textContent = statusText;
-    currentStatus.className = `site-status ${statusClass}`;
-
-    // Add confidence info
-    const confidence = Math.round(result.confidence * 100);
-    currentStatus.textContent += ` (${confidence}% 置信度, ${result.riskLevel})`;
-}
-
-/**
- * Display quick check result
- */
-function displayCheckResult(result) {
-    checkResult.classList.remove('hidden', 'safe', 'danger');
-
-    if (result.isPhishing) {
-        checkResult.classList.add('danger');
-        checkResult.innerHTML = `
-            <strong>⚠️ 钓鱼网站警告</strong><br>
-            该网站是钓鱼网站<br>
-            风险等级: ${result.riskLevel}<br>
-            置信度: ${Math.round(result.confidence * 100)}%
-        `;
-    } else {
-        checkResult.classList.add('safe');
-        checkResult.innerHTML = `
-            <strong>✓ 安全网站</strong><br>
-            该网站是安全的<br>
-            风险等级: ${result.riskLevel}<br>
-            置信度: ${Math.round(result.confidence * 100)}%
-        `;
-    }
-}
-
-/**
- * Set scan button loading state
- */
-function setScanButtonLoading(loading) {
-    if (loading) {
-        scanBtn.innerHTML = '<span class="spinner"></span> 扫描中...';
-        scanBtn.disabled = true;
-    } else {
-        scanBtn.innerHTML = '<span class="btn-icon">🔍</span> 扫描当前网站';
-        scanBtn.disabled = false;
-    }
-}
-
-/**
- * Load statistics from storage
- */
-function loadStats() {
-    chrome.storage.local.get(['scannedCount', 'blockedCount'], (result) => {
-        scannedCount.textContent = result.scannedCount || 0;
-        blockedCount.textContent = result.blockedCount || 0;
-    });
-}
-
-/**
- * Increment statistics
- */
-function incrementStats(type) {
-    chrome.storage.local.get([type + 'Count'], (result) => {
-        const current = result[type + 'Count'] || 0;
-        chrome.storage.local.set({ [type + 'Count']: current + 1 });
-
-        if (type === 'scanned') {
-            scannedCount.textContent = current + 1;
-        } else if (type === 'blocked') {
-            blockedCount.textContent = current + 1;
+    if (tokenDisplay && tokenStatus) {
+        const credential = result.apiToken || result.apiKey;
+        if (credential) {
+            const masked = credential.length > 12
+                ? credential.substring(0, 6) + '...' + credential.substring(credential.length - 4)
+                : '***';
+            tokenDisplay.textContent = masked;
+            tokenStatus.textContent = '✅ 已登录';
+            tokenStatus.className = 'token-status logged-in';
+        } else {
+            tokenDisplay.textContent = '未设置';
+            tokenStatus.textContent = '⚠️ 未登录';
+            tokenStatus.className = 'token-status not-logged-in';
         }
-    });
+    }
 }
 
 /**
- * Open settings
+ * Close details modal
  */
-function openSettings() {
-    chrome.tabs.create({ url: chrome.runtime.getURL('src/settings/settings.html') });
-}
-
-/**
- * Clear detection cache
- */
-async function clearCache() {
-    try {
-        await chrome.runtime.sendMessage({ action: 'clearCache' });
-        alert('缓存已清除');
-    } catch (error) {
-        console.error('Failed to clear cache:', error);
-        alert('清除缓存失败');
+function closeDetailsModal() {
+    const modal = document.getElementById('details-modal');
+    if (modal) {
+        modal.classList.add('hidden');
     }
 }
 
@@ -308,3 +311,21 @@ function truncateUrl(url, maxLength) {
     if (url.length <= maxLength) return url;
     return url.substring(0, maxLength) + '...';
 }
+
+/**
+ * Show toast notification
+ */
+function showToast(message, type = 'info', duration = 3000) {
+    if (typeof toast !== 'undefined' && toast.show) {
+        return toast.show(message, type, duration);
+    }
+
+    // Fallback if toast is not available
+    console.log(`[${type}] ${message}`);
+    return null;
+}
+
+// Make functions globally available for inline event handlers
+window.showLoginModal = showLoginModal;
+window.closeDetailsModal = closeDetailsModal;
+window.showToast = showToast;

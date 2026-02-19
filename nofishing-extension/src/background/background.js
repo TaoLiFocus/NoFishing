@@ -1,15 +1,15 @@
 /**
  * NoFishing - Background Service Worker
- * Handles URL interception and phishing detection
+ * Handles URL interception and phishing detection with token auth
  */
 
-// API Configuration - 使用Spring Boot后端API
+// API Configuration
 const BACKEND_API_URL = 'http://localhost:8080/api/v1';
 const DETECT_ENDPOINT = `${BACKEND_API_URL}/detect`;
 const HEALTH_ENDPOINT = `${BACKEND_API_URL}/health`;
 
 // Cache settings
-const CACHE_TTL = 3600000; // 1 hour in milliseconds
+const CACHE_TTL = 3600000;
 const MAX_CACHE_SIZE = 1000;
 
 // Detection cache
@@ -19,22 +19,43 @@ const detectionCache = new Map();
  * Initialize the extension
  */
 chrome.runtime.onInstalled.addListener(() => {
-    console.log('NoFishing extension installed');
+    console.log('[NoFishing] Extension installed');
 
     // Set default settings
     chrome.storage.local.set({
-        enabled: true,
-        showNotifications: true,
-        autoBlock: false,
-        apiEndpoint: BACKEND_API_URL
+        settings: {
+            autoBlock: false,
+            showNotifications: true,
+            autoScan: true,
+            sensitivity: 'medium'
+        },
+        scannedCount: 0,
+        blockedCount: 0
     });
 });
+
+/**
+ * Get authorization headers
+ */
+async function getAuthHeaders() {
+    const headers = { 'Content-Type': 'application/json' };
+
+    // Try JWT token first
+    const result = await chrome.storage.local.get(['apiToken', 'apiKey']);
+
+    if (result.apiToken) {
+        headers['Authorization'] = `Bearer ${result.apiToken}`;
+    } else if (result.apiKey) {
+        headers['X-API-Key'] = result.apiKey;
+    }
+
+    return headers;
+}
 
 /**
  * Handle navigation events
  */
 chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
-    // Only handle main frame navigation
     if (details.frameId !== 0) return;
 
     const url = details.url;
@@ -42,11 +63,11 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
     // Skip chrome:// and edge:// URLs
     if (url.startsWith('chrome://') || url.startsWith('edge://')) return;
 
-    // Check if extension is enabled
+    // Check settings
     const settings = await getSettings();
-    if (!settings.enabled) return;
+    if (!settings.autoScan) return;
 
-    // Check if URL is in cache
+    // Check cache first
     const cachedResult = getCachedResult(url);
     if (cachedResult) {
         console.log('[NoFishing] Cache HIT:', url, cachedResult);
@@ -61,10 +82,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
     const result = await detectUrl(url);
 
     if (result && result.isPhishing) {
-        // Cache the result
         cacheResult(url, result);
-
-        // Handle phishing URL
         await handlePhishingUrl(url, result);
     }
 });
@@ -74,25 +92,29 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
  */
 async function detectUrl(url) {
     try {
+        const headers = await getAuthHeaders();
+
         const response = await fetch(DETECT_ENDPOINT, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                url: url
-            })
+            headers: headers,
+            body: JSON.stringify({ url: url })
         });
 
         if (!response.ok) {
             console.error('[NoFishing] API error:', response.status);
+
+            // Handle 401 Unauthorized - clear credentials
+            if (response.status === 401) {
+                console.log('[NoFishing] Unauthorized, clearing credentials...');
+                await chrome.storage.local.set({ apiToken: null, apiKey: null });
+            }
+
             return null;
         }
 
         const mlResult = await response.json();
         console.log('[NoFishing] ML API result:', mlResult);
 
-        // 转换Flask响应格式为扩展期望的格式
         const result = {
             url: mlResult.url,
             isPhishing: mlResult.is_phishing,
@@ -101,12 +123,47 @@ async function detectUrl(url) {
             processingTimeMs: mlResult.processing_time_ms
         };
 
+        // Add to history
+        await addToHistory(result);
+
         return result;
 
     } catch (error) {
         console.error('[NoFishing] Detection failed:', error);
         return null;
     }
+}
+
+/**
+ * Add detection to history
+ */
+async function addToHistory(result) {
+    chrome.storage.local.get(['detectionHistory'], (data) => {
+        const history = data.detectionHistory || [];
+
+        const entry = {
+            id: Date.now(),
+            url: result.url,
+            isPhishing: result.isPhishing,
+            confidence: result.confidence,
+            riskLevel: result.riskLevel,
+            timestamp: Date.now(),
+            processingTimeMs: result.processingTimeMs
+        };
+
+        history.unshift(entry);
+
+        // Trim to 200 entries
+        if (history.length > 200) {
+            history.splice(200);
+        }
+
+        // Remove entries older than 30 days
+        const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+        const filtered = history.filter(e => e.timestamp > thirtyDaysAgo);
+
+        chrome.storage.local.set({ detectionHistory: filtered });
+    });
 }
 
 /**
@@ -221,18 +278,15 @@ function getCachedResult(url) {
  */
 async function getSettings() {
     return new Promise((resolve) => {
-        chrome.storage.local.get(
-            ['autoScan', 'showNotifications', 'blockPhishing', 'sensitivity', 'apiUrl'],
-            (result) => {
-                resolve({
-                    enabled: result.autoScan !== false,
-                    showNotifications: result.showNotifications !== false,
-                    autoBlock: result.blockPhishing || false,
-                    sensitivity: result.sensitivity || 'medium',
-                    apiEndpoint: result.apiUrl || BACKEND_API_URL
-                });
-            }
-        );
+        chrome.storage.local.get(['settings'], (result) => {
+            const defaults = {
+                autoBlock: false,
+                showNotifications: true,
+                autoScan: true,
+                sensitivity: 'medium'
+            };
+            resolve({ ...defaults, ...result.settings });
+        });
     });
 }
 
@@ -241,13 +295,13 @@ async function getSettings() {
  */
 async function healthCheck() {
     try {
-        const settings = await getSettings();
-        const response = await fetch(settings.apiEndpoint + '/health');
+        const headers = await getAuthHeaders();
+        const response = await fetch(HEALTH_ENDPOINT, { headers });
 
         if (response.ok) {
             const data = await response.json();
             console.log('[NoFishing] API Health:', data);
-            return data.status === 'healthy';
+            return data.mlService === 'UP';
         }
         return false;
     } catch (error) {
@@ -257,7 +311,7 @@ async function healthCheck() {
 }
 
 // Periodic health check
-setInterval(healthCheck, 60000); // Every minute
+setInterval(healthCheck, 60000);
 
 /**
  * Handle messages from popup
@@ -280,8 +334,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     if (request.action === 'settingsChanged') {
-        // Reload settings cache
-        console.log('[NoFishing] Settings changed, reloading...');
+        console.log('[NoFishing] Settings changed');
         sendResponse({ success: true });
         return true;
     }

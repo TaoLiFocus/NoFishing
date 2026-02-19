@@ -1,160 +1,234 @@
 /**
- * NoFishing Storage Utilities
- * Handles chrome.storage.local operations
+ * NoFishing Storage Helpers
+ * Utilities for managing chrome.storage.local
  */
 
-/**
- * Storage keys
- */
+// Storage keys
 const STORAGE_KEYS = {
-    ENABLED: 'enabled',
-    SHOW_NOTIFICATIONS: 'showNotifications',
-    AUTO_BLOCK: 'autoBlock',
-    API_ENDPOINT: 'apiEndpoint',
+    API_TOKEN: 'apiToken',
+    API_KEY: 'apiKey',
+    API_URL: 'apiUrl',
+    DETECTION_HISTORY: 'detectionHistory',
+    SETTINGS: 'settings',
     SCANNED_COUNT: 'scannedCount',
-    BLOCKED_COUNT: 'blockedCount',
-    CACHE: 'detectionCache'
+    BLOCKED_COUNT: 'blockedCount'
+};
+
+// Default settings
+const DEFAULT_SETTINGS = {
+    autoBlock: false,
+    showNotifications: true,
+    autoScan: true,
+    sensitivity: 'medium' // 'low', 'medium', 'high'
 };
 
 /**
- * Get settings from storage
+ * Get data from chrome.storage.local
+ */
+function getStorage(keys) {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(keys, (result) => resolve(result || {}));
+    });
+}
+
+/**
+ * Set data in chrome.storage.local
+ */
+function setStorage(data) {
+    return new Promise((resolve) => {
+        chrome.storage.local.set(data, () => resolve());
+    });
+}
+
+/**
+ * Remove data from chrome.storage.local
+ */
+function removeStorage(keys) {
+    return new Promise((resolve) => {
+        chrome.storage.local.remove(keys, () => resolve());
+    });
+}
+
+/**
+ * Get API token
+ */
+async function getApiToken() {
+    const data = await getStorage([STORAGE_KEYS.API_TOKEN]);
+    return data[STORAGE_KEYS.API_TOKEN] || null;
+}
+
+/**
+ * Set API token
+ */
+async function setApiToken(token) {
+    return setStorage({ [STORAGE_KEYS.API_TOKEN]: token });
+}
+
+/**
+ * Get API key
+ */
+async function getApiKey() {
+    const data = await getStorage([STORAGE_KEYS.API_KEY]);
+    return data[STORAGE_KEYS.API_KEY] || null;
+}
+
+/**
+ * Set API key
+ */
+async function setApiKey(apiKey) {
+    return setStorage({ [STORAGE_KEYS.API_KEY]: apiKey });
+}
+
+/**
+ * Get API URL
+ */
+async function getApiUrl() {
+    const data = await getStorage([STORAGE_KEYS.API_URL]);
+    return data[STORAGE_KEYS.API_URL] || 'http://localhost:8080/api/v1';
+}
+
+/**
+ * Set API URL
+ */
+async function setApiUrl(url) {
+    return setStorage({ [STORAGE_KEYS.API_URL]: url });
+}
+
+/**
+ * Get settings
  */
 async function getSettings() {
-    return new Promise((resolve) => {
-        chrome.storage.local.get(
-            Object.values(STORAGE_KEYS),
-            (result) => {
-                resolve({
-                    enabled: result[STORAGE_KEYS.ENABLED] !== false,
-                    showNotifications: result[STORAGE_KEYS.SHOW_NOTIFICATIONS] !== false,
-                    autoBlock: result[STORAGE_KEYS.AUTO_BLOCK] || false,
-                    apiEndpoint: result[STORAGE_KEYS.API_ENDPOINT] || 'http://localhost:8080/api/v1',
-                    scannedCount: result[STORAGE_KEYS.SCANNED_COUNT] || 0,
-                    blockedCount: result[STORAGE_KEYS.BLOCKED_COUNT] || 0
-                });
-            }
-        );
+    const data = await getStorage([STORAGE_KEYS.SETTINGS]);
+    return { ...DEFAULT_SETTINGS, ...data[STORAGE_KEYS.SETTINGS] };
+}
+
+/**
+ * Set settings
+ */
+async function setSettings(settings) {
+    const current = await getSettings();
+    return setStorage({ [STORAGE_KEYS.SETTINGS]: { ...current, ...settings } });
+}
+
+/**
+ * Get detection history
+ */
+async function getDetectionHistory() {
+    const data = await getStorage([STORAGE_KEYS.DETECTION_HISTORY]);
+    return data[STORAGE_KEYS.DETECTION_HISTORY] || [];
+}
+
+/**
+ * Add detection to history
+ */
+async function addDetectionHistory(entry) {
+    const history = await getDetectionHistory();
+
+    // Create history entry
+    const historyEntry = {
+        id: Date.now(),
+        url: entry.url,
+        isPhishing: entry.isPhishing,
+        confidence: entry.confidence,
+        riskLevel: entry.riskLevel,
+        timestamp: entry.timestamp || Date.now(),
+        processingTimeMs: entry.processingTimeMs
+    };
+
+    // Add to beginning of array
+    history.unshift(historyEntry);
+
+    // Trim to max 200 entries
+    if (history.length > 200) {
+        history.splice(200);
+    }
+
+    // Remove entries older than 30 days
+    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    const filtered = history.filter(entry => entry.timestamp > thirtyDaysAgo);
+
+    return setStorage({ [STORAGE_KEYS.DETECTION_HISTORY]: filtered });
+}
+
+/**
+ * Clear detection history
+ */
+async function clearDetectionHistory() {
+    return setStorage({ [STORAGE_KEYS.DETECTION_HISTORY]: [] });
+}
+
+/**
+ * Filter detection history
+ */
+async function filterDetectionHistory(filter = 'all') {
+    const history = await getDetectionHistory();
+
+    if (filter === 'all') {
+        return history;
+    }
+
+    return history.filter(entry => {
+        if (filter === 'safe') {
+            return !entry.isPhishing;
+        } else if (filter === 'suspicious') {
+            return entry.riskLevel === 'MEDIUM';
+        } else if (filter === 'phishing') {
+            return entry.isPhishing;
+        }
+        return true;
     });
 }
 
 /**
- * Save settings to storage
+ * Get stats
  */
-async function saveSettings(settings) {
-    return new Promise((resolve) => {
-        chrome.storage.local.set(settings, () => {
-            resolve(true);
-        });
-    });
+async function getStats() {
+    const data = await getStorage([STORAGE_KEYS.SCANNED_COUNT, STORAGE_KEYS.BLOCKED_COUNT]);
+    return {
+        scanned: data[STORAGE_KEYS.SCANNED_COUNT] || 0,
+        blocked: data[STORAGE_KEYS.BLOCKED_COUNT] || 0
+    };
 }
 
 /**
- * Get cached detection result for URL
+ * Increment stat
  */
-async function getCachedResult(url) {
-    return new Promise((resolve) => {
-        chrome.storage.local.get([STORAGE_KEYS.CACHE], (result) => {
-            const cache = result[STORAGE_KEYS.CACHE] || {};
-            const cached = cache[url];
-
-            if (!cached) {
-                resolve(null);
-                return;
-            }
-
-            // Check if cache is expired (1 hour)
-            const CACHE_TTL = 3600000;
-            if (Date.now() - cached.timestamp > CACHE_TTL) {
-                delete cache[url];
-                chrome.storage.local.set({ [STORAGE_KEYS.CACHE]: cache });
-                resolve(null);
-                return;
-            }
-
-            resolve(cached);
-        });
-    });
+async function incrementStat(type) {
+    const key = type === 'scanned' ? STORAGE_KEYS.SCANNED_COUNT : STORAGE_KEYS.BLOCKED_COUNT;
+    const data = await getStorage([key]);
+    const current = data[key] || 0;
+    return setStorage({ [key]: current + 1 });
 }
 
 /**
- * Cache a detection result
+ * Clear all credentials
  */
-async function cacheResult(url, result) {
-    return new Promise((resolve) => {
-        chrome.storage.local.get([STORAGE_KEYS.CACHE], (result_data) => {
-            const cache = result_data[STORAGE_KEYS.CACHE] || {};
-
-            // Enforce cache size limit
-            const MAX_CACHE_SIZE = 500;
-            const cacheKeys = Object.keys(cache);
-            if (cacheKeys.length >= MAX_CACHE_SIZE) {
-                const oldestKey = cacheKeys[0];
-                delete cache[oldestKey];
-            }
-
-            cache[url] = {
-                ...result,
-                timestamp: Date.now()
-            };
-
-            chrome.storage.local.set({ [STORAGE_KEYS.CACHE]: cache }, () => {
-                resolve(true);
-            });
-        });
-    });
+async function clearCredentials() {
+    return removeStorage([STORAGE_KEYS.API_TOKEN, STORAGE_KEYS.API_KEY]);
 }
 
-/**
- * Clear detection cache
- */
-async function clearCache() {
-    return new Promise((resolve) => {
-        chrome.storage.local.set({ [STORAGE_KEYS.CACHE]: {} }, () => {
-            resolve(true);
-        });
-    });
-}
-
-/**
- * Increment counter
- */
-async function incrementCounter(type) {
-    return new Promise((resolve) => {
-        const key = type === 'scanned' ? STORAGE_KEYS.SCANNED_COUNT : STORAGE_KEYS.BLOCKED_COUNT;
-
-        chrome.storage.local.get([key], (result) => {
-            const current = result[key] || 0;
-            chrome.storage.local.set({ [key]: current + 1 }, () => {
-                resolve(current + 1);
-            });
-        });
-    });
-}
-
-/**
- * Reset all statistics
- */
-async function resetStats() {
-    return new Promise((resolve) => {
-        chrome.storage.local.set({
-            [STORAGE_KEYS.SCANNED_COUNT]: 0,
-            [STORAGE_KEYS.BLOCKED_COUNT]: 0
-        }, () => {
-            resolve(true);
-        });
-    });
-}
-
-// Export for use in other modules
+// Export for use in other files
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         STORAGE_KEYS,
+        DEFAULT_SETTINGS,
+        getStorage,
+        setStorage,
+        removeStorage,
+        getApiToken,
+        setApiToken,
+        getApiKey,
+        setApiKey,
+        getApiUrl,
+        setApiUrl,
         getSettings,
-        saveSettings,
-        getCachedResult,
-        cacheResult,
-        clearCache,
-        incrementCounter,
-        resetStats
+        setSettings,
+        getDetectionHistory,
+        addDetectionHistory,
+        clearDetectionHistory,
+        filterDetectionHistory,
+        getStats,
+        incrementStat,
+        clearCredentials
     };
 }
