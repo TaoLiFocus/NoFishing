@@ -130,7 +130,7 @@ function showLoginRequiredOverlay() {
         return;
     }
 
-    // Create overlay
+    // Create overlay - z-index must be lower than modal (1000)
     const overlay = document.createElement('div');
     overlay.id = 'loginRequiredOverlay';
     overlay.style.cssText = `
@@ -140,7 +140,7 @@ function showLoginRequiredOverlay() {
         right: 0;
         bottom: 0;
         background: rgba(0, 0, 0, 0.7);
-        z-index: 9999;
+        z-index: 500;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -166,8 +166,11 @@ function showLoginRequiredOverlay() {
 
     document.body.appendChild(overlay);
 
-    // Setup login button
+    // Setup login button - remove overlay first, then show login modal
     document.getElementById('overlayLoginBtn').addEventListener('click', () => {
+        // Remove the overlay first so it doesn't cover the login modal
+        hideLoginRequiredOverlay();
+        // Then show the login modal
         showLoginModal();
     });
 }
