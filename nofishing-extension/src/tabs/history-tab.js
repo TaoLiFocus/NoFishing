@@ -13,7 +13,7 @@ class HistoryTab {
     }
 
     bindEvents() {
-        const filterSelect = document.getElementById('historyFilter');
+        const filterSelect = document.getElementById('history-filter');
         if (filterSelect) {
             filterSelect.addEventListener('change', (e) => {
                 this.currentFilter = e.target.value;
@@ -21,7 +21,7 @@ class HistoryTab {
             });
         }
 
-        const clearBtn = document.getElementById('clearHistoryBtn');
+        const clearBtn = document.getElementById('clear-history-btn');
         if (clearBtn) {
             clearBtn.addEventListener('click', () => this.clearHistory());
         }
@@ -33,11 +33,11 @@ class HistoryTab {
     }
 
     renderHistory(history) {
-        const container = document.getElementById('historyList');
+        const container = document.getElementById('history-list');
         if (!container) return;
 
         if (history.length === 0) {
-            container.innerHTML = '<p class="empty-message">暂无检测记录</p>';
+            container.innerHTML = '<div class="history-empty"><div class="empty-icon">📋</div><div class="empty-title">暂无检测记录</div><div class="empty-text">检测历史将显示在这里</div></div>';
             return;
         }
 
@@ -51,15 +51,17 @@ class HistoryTab {
         const confidence = Math.round(entry.confidence * 100);
 
         return `
-            <div class="history-entry ${statusClass}" data-id="${entry.id}">
+            <div class="history-item ${statusClass}" data-id="${entry.id}">
                 <div class="history-icon">${icon}</div>
                 <div class="history-content">
                     <div class="history-url">${this.truncateUrl(entry.url, 45)}</div>
                     <div class="history-meta">
-                        ${entry.riskLevel} • ${confidence}% • ${timeAgo}
+                        <span class="history-status ${statusClass}">${entry.riskLevel}</span>
+                        <span class="history-confidence">${confidence}%</span>
+                        <span class="history-time">${timeAgo}</span>
                     </div>
                 </div>
-                <button class="history-details-btn" data-id="${entry.id}">查看详情</button>
+                <button class="history-details-btn" onclick="showHistoryDetails(${entry.id})">详情</button>
             </div>
         `;
     }
@@ -82,7 +84,7 @@ class HistoryTab {
     async clearHistory() {
         if (!confirm('确定要清除所有检测历史吗？')) return;
         try {
-            await clearDetectionHistory();
+            await clearHistory();
             await this.loadHistory();
             showToast('历史记录已清除', 'success');
         } catch (error) {
@@ -92,12 +94,72 @@ class HistoryTab {
     }
 }
 
+/**
+ * Show history entry details
+ */
+async function showHistoryDetails(entryId) {
+    const history = await getHistory();
+    const entry = history.find(e => e.id === entryId);
+
+    if (!entry) {
+        showToast('未找到检测记录', 'error');
+        return;
+    }
+
+    const modal = document.getElementById('details-modal');
+    const content = document.getElementById('details-content');
+
+    if (modal && content) {
+        const statusClass = entry.isPhishing ? 'danger' : 'safe';
+        const statusText = entry.isPhishing ? '钓鱼网站' : '安全';
+
+        content.innerHTML = `
+            <div class="detail-row">
+                <div class="detail-label">URL</div>
+                <div class="detail-value">${entry.url}</div>
+            </div>
+            <div class="detail-row">
+                <div class="detail-label">检测结果</div>
+                <div class="detail-value ${statusClass}">${statusText}</div>
+            </div>
+            <div class="detail-row">
+                <div class="detail-label">风险等级</div>
+                <div class="detail-value ${statusClass}">${entry.riskLevel}</div>
+            </div>
+            <div class="detail-row">
+                <div class="detail-label">置信度</div>
+                <div class="detail-value">${Math.round(entry.confidence * 100)}%</div>
+            </div>
+            <div class="detail-row">
+                <div class="detail-label">检测时间</div>
+                <div class="detail-value">${new Date(entry.timestamp).toLocaleString('zh-CN')}</div>
+            </div>
+            ${entry.processingTimeMs ? `
+            <div class="detail-row">
+                <div class="detail-label">处理耗时</div>
+                <div class="detail-value">${entry.processingTimeMs} ms</div>
+            </div>
+            ` : ''}
+        `;
+
+        modal.classList.remove('hidden');
+    }
+}
+
+// Export to global scope
+window.showHistoryDetails = showHistoryDetails;
+
 let historyTab = null;
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
+/**
+ * Initialize history tab (called from popup.js)
+ */
+async function initHistoryTab() {
+    if (!historyTab) {
         historyTab = new HistoryTab();
-    });
-} else {
-    historyTab = new HistoryTab();
+    }
+    await historyTab.init();
 }
+
+// Export for use in popup.js
+window.initHistoryTab = initHistoryTab;

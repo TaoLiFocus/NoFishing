@@ -164,7 +164,6 @@ async function handleLogout() {
     }
 
     try {
-        const { apiClient } = await import('../utils/api.js');
         await apiClient.logout();
 
         showToast('已退出登录', 'success');
@@ -184,8 +183,8 @@ async function handleClearCache() {
     }
 
     try {
-        const { clearCache } = await import('../utils/storage.js');
-        await clearCache();
+        // Send message to background to clear cache
+        await chrome.runtime.sendMessage({ action: 'clearCache' });
 
         showToast('缓存已清除', 'success');
     } catch (error) {
@@ -203,7 +202,6 @@ async function handleClearHistory() {
     }
 
     try {
-        const { clearHistory } = await import('../utils/storage.js');
         await clearHistory();
 
         showToast('检测历史已清空', 'success');

@@ -177,8 +177,6 @@ async function addToWhitelist() {
             return;
         }
 
-        const { apiClient } = await import('../utils/api.js');
-
         // Show loading
         showToast('正在添加到白名单...', 'info');
 
@@ -207,8 +205,6 @@ async function addToBlacklist() {
             showToast('无法获取页面URL', 'error');
             return;
         }
-
-        const { apiClient } = await import('../utils/api.js');
 
         // Show loading
         showToast('正在添加到黑名单...', 'info');
@@ -248,13 +244,11 @@ async function handleQuickCheck(e) {
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<span class="spinner"></span>';
 
-        const { apiClient } = await import('../utils/api.js');
         const result = await apiClient.detectUrl(url);
 
         displayQuickCheckResult(result);
 
         // Add to history
-        const { addHistoryEntry } = await import('../utils/storage.js');
         await addHistoryEntry({
             url: url,
             isPhishing: result.isPhishing,

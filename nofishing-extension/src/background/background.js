@@ -333,6 +333,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
 
+    if (request.action === 'getCachedResult') {
+        const cached = getCachedResult(request.url);
+        sendResponse({ result: cached });
+        return true;
+    }
+
     if (request.action === 'settingsChanged') {
         console.log('[NoFishing] Settings changed');
         sendResponse({ success: true });

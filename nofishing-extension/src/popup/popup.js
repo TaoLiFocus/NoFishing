@@ -233,11 +233,7 @@ async function handleLogin() {
                 return;
             }
 
-            if (typeof apiClient !== 'undefined') {
-                await apiClient.setApiKey(token);
-            } else {
-                await chrome.storage.local.set({ apiKey: token });
-            }
+            await apiClient.setApiKey(token);
         } else {
             const usernameInput = document.getElementById('usernameInput');
             const passwordInput = document.getElementById('passwordInput');
@@ -249,10 +245,7 @@ async function handleLogin() {
                 return;
             }
 
-            if (typeof apiClient !== 'undefined') {
-                const result = await apiClient.login(username, password);
-                await chrome.storage.local.set({ apiToken: result.token });
-            }
+            const result = await apiClient.login(username, password);
         }
 
         showToast('登录成功', 'success');
@@ -293,6 +286,10 @@ async function loadApiConfig() {
         }
     }
 }
+
+/**
+ * Close details modal
+ */
 
 /**
  * Close details modal
