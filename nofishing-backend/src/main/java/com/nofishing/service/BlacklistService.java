@@ -3,7 +3,6 @@ package com.nofishing.service;
 import com.nofishing.annotation.Audited;
 import com.nofishing.entity.BlacklistEntry;
 import com.nofishing.repository.BlacklistEntryRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
@@ -20,12 +19,16 @@ import java.util.regex.PatternSyntaxException;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class BlacklistService {
 
     private final BlacklistEntryRepository repository;
     @Lazy
     private final WhitelistService whitelistService;
+
+    public BlacklistService(BlacklistEntryRepository repository, @Lazy WhitelistService whitelistService) {
+        this.repository = repository;
+        this.whitelistService = whitelistService;
+    }
 
     @Transactional
     @Audited(operation = "ADD_BLACKLIST", module = "BLACKLIST", targetType = "DOMAIN")
