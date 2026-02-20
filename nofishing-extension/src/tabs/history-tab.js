@@ -25,6 +25,17 @@ class HistoryTab {
         if (clearBtn) {
             clearBtn.addEventListener('click', () => this.clearHistory());
         }
+
+        // Use event delegation for details buttons
+        const historyList = document.getElementById('history-list');
+        if (historyList) {
+            historyList.addEventListener('click', (e) => {
+                if (e.target.classList.contains('history-details-btn')) {
+                    const entryId = parseInt(e.target.dataset.id);
+                    this.showDetails(entryId);
+                }
+            });
+        }
     }
 
     async loadHistory() {
@@ -64,7 +75,7 @@ class HistoryTab {
                         <span class="history-time">${timeAgo}</span>
                     </div>
                 </div>
-                <button class="history-details-btn" onclick="showHistoryDetails(${entry.id})">详情</button>
+                <button class="history-details-btn" data-id="${entry.id}">详情</button>
             </div>
         `;
     }
@@ -95,57 +106,67 @@ class HistoryTab {
             showToast('清除失败: ' + error.message, 'error');
         }
     }
+
+    /**
+     * Show history entry details
+     */
+    async showDetails(entryId) {
+        const history = await getHistory();
+        const entry = history.find(e => e.id === entryId);
+
+        if (!entry) {
+            showToast('未找到检测记录', 'error');
+            return;
+        }
+
+        const modal = document.getElementById('details-modal');
+        const content = document.getElementById('details-content');
+
+        if (modal && content) {
+            const statusClass = entry.isPhishing ? 'danger' : 'safe';
+            const statusText = entry.isPhishing ? '钓鱼网站' : '安全';
+
+            content.innerHTML = `
+                <div class="detail-row">
+                    <div class="detail-label">URL</div>
+                    <div class="detail-value">${entry.url}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">检测结果</div>
+                    <div class="detail-value ${statusClass}">${statusText}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">风险等级</div>
+                    <div class="detail-value ${statusClass}">${entry.riskLevel}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">置信度</div>
+                    <div class="detail-value">${(typeof entry.confidence === 'number' && !isNaN(entry.confidence)) ? Math.round(entry.confidence * 100) : 0}%</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">检测时间</div>
+                    <div class="detail-value">${new Date(entry.timestamp).toLocaleString('zh-CN')}</div>
+                </div>
+                ${entry.processingTimeMs ? `
+                <div class="detail-row">
+                    <div class="detail-label">处理耗时</div>
+                    <div class="detail-value">${entry.processingTimeMs} ms</div>
+                </div>
+                ` : ''}
+            `;
+
+            modal.classList.remove('hidden');
+        }
+    }
 }
 
 /**
- * Show history entry details
+ * Show history entry details (global function for onclick handlers)
+ * Delegates to HistoryTab instance if available
  */
 async function showHistoryDetails(entryId) {
-    const history = await getHistory();
-    const entry = history.find(e => e.id === entryId);
-
-    if (!entry) {
-        showToast('未找到检测记录', 'error');
-        return;
-    }
-
-    const modal = document.getElementById('details-modal');
-    const content = document.getElementById('details-content');
-
-    if (modal && content) {
-        const statusClass = entry.isPhishing ? 'danger' : 'safe';
-        const statusText = entry.isPhishing ? '钓鱼网站' : '安全';
-
-        content.innerHTML = `
-            <div class="detail-row">
-                <div class="detail-label">URL</div>
-                <div class="detail-value">${entry.url}</div>
-            </div>
-            <div class="detail-row">
-                <div class="detail-label">检测结果</div>
-                <div class="detail-value ${statusClass}">${statusText}</div>
-            </div>
-            <div class="detail-row">
-                <div class="detail-label">风险等级</div>
-                <div class="detail-value ${statusClass}">${entry.riskLevel}</div>
-            </div>
-            <div class="detail-row">
-                <div class="detail-label">置信度</div>
-                <div class="detail-value">${(typeof entry.confidence === 'number' && !isNaN(entry.confidence)) ? Math.round(entry.confidence * 100) : 0}%</div>
-            </div>
-            <div class="detail-row">
-                <div class="detail-label">检测时间</div>
-                <div class="detail-value">${new Date(entry.timestamp).toLocaleString('zh-CN')}</div>
-            </div>
-            ${entry.processingTimeMs ? `
-            <div class="detail-row">
-                <div class="detail-label">处理耗时</div>
-                <div class="detail-value">${entry.processingTimeMs} ms</div>
-            </div>
-            ` : ''}
-        `;
-
-        modal.classList.remove('hidden');
+    if (historyTab) {
+        await historyTab.showDetails(entryId);
     }
 }
 
@@ -162,7 +183,30 @@ async function initHistoryTab() {
         historyTab = new HistoryTab();
     }
     await historyTab.init();
+
+    // Setup details modal close button event listener
+    const detailsModal = document.getElementById('details-modal');
+    if (detailsModal) {
+        const closeBtn = detailsModal.querySelector('.modal-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', closeDetailsModal);
+        }
+        const overlay = detailsModal.querySelector('.modal-overlay');
+        if (overlay) {
+            overlay.addEventListener('click', closeDetailsModal);
+        }
+    }
 }
 
-// Export for use in popup.js
-window.initHistoryTab = initHistoryTab;
+/**
+ * Close details modal
+ */
+function closeDetailsModal() {
+    const modal = document.getElementById('details-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+// Export for global scope
+window.closeDetailsModal = closeDetailsModal;

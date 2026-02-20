@@ -198,8 +198,11 @@ async function checkHealth() {
     const dot = apiStatus.querySelector('.status-dot');
     const text = apiStatus.querySelector('.status-text');
 
-    // Set checking state
-    if (dot) dot.style.backgroundColor = 'rgba(255, 255, 255, 0.4)';
+    // Set checking state - use checking class instead of inline style
+    if (dot) {
+        dot.classList.remove('online', 'offline');
+        dot.classList.add('checking');
+    }
     if (text) text.textContent = '检查中...';
 
     try {
@@ -213,7 +216,7 @@ async function checkHealth() {
         }
 
         if (dot) {
-            dot.classList.remove('online', 'offline');
+            dot.classList.remove('checking', 'offline');
             if (data.mlService === 'UP' || data.status === 'healthy') {
                 dot.classList.add('online');
                 text.textContent = 'API在线';
@@ -225,7 +228,7 @@ async function checkHealth() {
     } catch (error) {
         console.error('Health check failed:', error);
         if (dot) {
-            dot.classList.remove('online', 'offline');
+            dot.classList.remove('checking', 'online');
             dot.classList.add('offline');
         }
         if (text) text.textContent = 'API离线';
@@ -390,10 +393,6 @@ async function loadApiConfig() {
         }
     }
 }
-
-/**
- * Close details modal
- */
 
 /**
  * Close details modal

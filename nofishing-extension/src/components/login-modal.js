@@ -56,11 +56,10 @@ class LoginModal {
     bindEvents() {
         const closeBtn = document.getElementById('closeLoginModal');
         const cancelBtn = document.getElementById('cancelLoginBtn');
-        const loginBtn = document.getElementById('loginBtn');
 
         if (closeBtn) closeBtn.addEventListener('click', () => this.hide());
         if (cancelBtn) cancelBtn.addEventListener('click', () => this.hide());
-        if (loginBtn) loginBtn.addEventListener('click', () => this.handleLogin());
+        // Note: loginBtn handler is attached in popup.js to avoid duplicate handlers
 
         const tabs = this.modal.querySelectorAll('.login-tab');
         tabs.forEach(tab => {
