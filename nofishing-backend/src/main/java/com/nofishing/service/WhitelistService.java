@@ -5,6 +5,7 @@ import com.nofishing.entity.WhitelistEntry;
 import com.nofishing.repository.WhitelistEntryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +24,7 @@ import java.util.regex.PatternSyntaxException;
 public class WhitelistService {
 
     private final WhitelistEntryRepository repository;
+    @Lazy
     private final BlacklistService blacklistService;
 
     @Transactional
