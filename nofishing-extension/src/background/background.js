@@ -24,7 +24,7 @@ chrome.runtime.onInstalled.addListener(() => {
     // Set default settings
     chrome.storage.local.set({
         settings: {
-            autoBlock: false,
+            autoBlock: true,  // Default to blocking phishing sites
             showNotifications: true,
             autoScan: true,
             sensitivity: 'medium'
