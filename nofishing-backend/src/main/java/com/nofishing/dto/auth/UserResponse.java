@@ -1,5 +1,7 @@
 package com.nofishing.dto.auth;
 
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.nofishing.entity.User;
 import lombok.Builder;
 import lombok.Data;
@@ -8,6 +10,7 @@ import java.time.LocalDateTime;
 
 @Data
 @Builder
+@JsonNaming(PropertyNamingStrategies.LowerCamelCaseStrategy.class)
 public class UserResponse {
 
     private Long id;
