@@ -75,8 +75,10 @@ function updateSiteInfo(url, result) {
         statusElement.className = 'site-status safe';
     }
 
-    // Update confidence
-    const confidence = Math.round(result.confidence * 100);
+    // Update confidence with defensive check
+    const confidence = (typeof result.confidence === 'number' && !isNaN(result.confidence))
+        ? Math.round(result.confidence * 100)
+        : 0;
     confidenceElement.textContent = `置信度: ${confidence}%`;
 }
 
@@ -303,6 +305,11 @@ function displayQuickCheckResult(result) {
 
     resultContainer.classList.remove('hidden', 'safe', 'danger', 'warning');
 
+    // Add defensive check for confidence
+    const confidence = (typeof result.confidence === 'number' && !isNaN(result.confidence))
+        ? Math.round(result.confidence * 100)
+        : 0;
+
     if (result.isPhishing) {
         resultContainer.classList.add('danger');
         resultContainer.innerHTML = `
@@ -311,7 +318,7 @@ function displayQuickCheckResult(result) {
                 <div class="result-title">检测到钓鱼网站</div>
                 <div class="result-details">
                     风险等级: ${result.riskLevel}<br>
-                    置信度: ${Math.round(result.confidence * 100)}%
+                    置信度: ${confidence}%
                 </div>
             </div>
         `;
@@ -323,7 +330,7 @@ function displayQuickCheckResult(result) {
                 <div class="result-title">安全网站</div>
                 <div class="result-details">
                     风险等级: ${result.riskLevel}<br>
-                    置信度: ${Math.round(result.confidence * 100)}%
+                    置信度: ${confidence}%
                 </div>
             </div>
         `;

@@ -48,7 +48,10 @@ class HistoryTab {
         const icon = entry.isPhishing ? '⛔' : '✅';
         const statusClass = entry.isPhishing ? 'danger' : 'safe';
         const timeAgo = this.formatTimeAgo(entry.timestamp);
-        const confidence = Math.round(entry.confidence * 100);
+        // Add defensive check for confidence
+        const confidence = (typeof entry.confidence === 'number' && !isNaN(entry.confidence))
+            ? Math.round(entry.confidence * 100)
+            : 0;
 
         return `
             <div class="history-item ${statusClass}" data-id="${entry.id}">
@@ -128,7 +131,7 @@ async function showHistoryDetails(entryId) {
             </div>
             <div class="detail-row">
                 <div class="detail-label">置信度</div>
-                <div class="detail-value">${Math.round(entry.confidence * 100)}%</div>
+                <div class="detail-value">${(typeof entry.confidence === 'number' && !isNaN(entry.confidence)) ? Math.round(entry.confidence * 100) : 0}%</div>
             </div>
             <div class="detail-row">
                 <div class="detail-label">检测时间</div>

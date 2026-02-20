@@ -162,8 +162,10 @@ class ApiClient {
             headers: { 'Content-Type': 'application/json' }
         });
 
+        // IMPORTANT: Clear existing apiKey to avoid header conflicts
+        this.apiKey = null;
         this.token = data.token;
-        await this.setStorageData({ apiToken: this.token });
+        await this.setStorageData({ apiToken: this.token, apiKey: null });
 
         return data;
     }
@@ -190,6 +192,9 @@ class ApiClient {
      * Uses a detection request to verify the token is valid
      */
     async setApiKey(apiKey) {
+        // IMPORTANT: Clear existing token to avoid header conflicts
+        this.token = null;
+
         // Temporarily set the key for verification
         this.apiKey = apiKey;
 
@@ -201,7 +206,8 @@ class ApiClient {
 
             // If we get here without 401 error, the token is valid
             console.log('[NoFishing] API Token verified successfully');
-            await this.setStorageData({ apiKey });
+            // Also clear apiToken from storage to prevent conflicts
+            await this.setStorageData({ apiKey, apiToken: null });
             return true;
         } catch (error) {
             // Clear the invalid key
@@ -209,7 +215,7 @@ class ApiClient {
             console.error('[NoFishing] API Token verification failed:', error);
 
             if (error.message === 'UNAUTHORIZED') {
-                throw new Error('API Token无效，请检查后输入是否正确');
+                throw new Error('API Token无效或已过期');
             } else if (error.message && error.message.includes('fetch')) {
                 throw new Error('无法连接到后端服务，请确保服务已启动');
             } else {
@@ -283,17 +289,29 @@ class ApiClient {
      * Extract confidence from various possible field names
      */
     extractConfidence(mlResult) {
-        // Try different possible field names
-        if (typeof mlResult.probability === 'number') return mlResult.probability;
-        if (typeof mlResult.confidence === 'number') return mlResult.confidence;
-        if (typeof mlResult.score === 'number') return mlResult.score;
+        // Try different possible field names with type conversion
+        const fields = ['probability', 'confidence', 'score'];
+
+        for (const field of fields) {
+            const value = mlResult[field];
+
+            // Handle number
+            if (typeof value === 'number') {
+                return value;
+            }
+
+            // Handle string (convert to number)
+            if (typeof value === 'string') {
+                const num = parseFloat(value);
+                if (!isNaN(num)) {
+                    return num;
+                }
+            }
+        }
 
         // Log warning if no valid confidence found
-        const confidence = mlResult.probability || mlResult.confidence || mlResult.score;
-        console.warn('[NoFishing] Invalid confidence value:', confidence, 'in response:', mlResult);
-
-        // Return 0 as fallback
-        return 0;
+        console.warn('[NoFishing] No valid confidence field in response:', mlResult);
+        return 0;  // Return 0 as fallback
     }
 
     async checkUrl(url) {

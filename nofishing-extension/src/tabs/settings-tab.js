@@ -152,67 +152,6 @@ async function loadApiConfig() {
 }
 
 /**
- * Setup settings tab event listeners
- */
-function setupSettingsEventListeners() {
-    // Auto-block toggle
-    const autoBlockToggle = document.getElementById('auto-block-toggle');
-    if (autoBlockToggle) {
-        autoBlockToggle.addEventListener('change', (e) => {
-            updateSetting('autoBlock', e.target.checked);
-        });
-    }
-
-    // Notifications toggle
-    const notificationsToggle = document.getElementById('notifications-toggle');
-    if (notificationsToggle) {
-        notificationsToggle.addEventListener('change', (e) => {
-            updateSetting('showNotifications', e.target.checked);
-        });
-    }
-
-    // Auto-scan toggle
-    const autoScanToggle = document.getElementById('auto-scan-toggle');
-    if (autoScanToggle) {
-        autoScanToggle.addEventListener('change', (e) => {
-            updateSetting('autoScan', e.target.checked);
-        });
-    }
-
-    // Sensitivity dropdown
-    const sensitivitySelect = document.getElementById('sensitivity-select');
-    if (sensitivitySelect) {
-        sensitivitySelect.addEventListener('change', (e) => {
-            updateSetting('sensitivity', e.target.value);
-        });
-    }
-
-    // Update token button
-    const updateTokenBtn = document.getElementById('update-token-btn');
-    if (updateTokenBtn) {
-        updateTokenBtn.addEventListener('click', showLoginModal);
-    }
-
-    // Logout button
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', handleLogout);
-    }
-
-    // Clear cache button
-    const clearCacheBtn = document.getElementById('clear-cache-btn');
-    if (clearCacheBtn) {
-        clearCacheBtn.addEventListener('click', handleClearCache);
-    }
-
-    // Clear history button
-    const clearHistoryBtn = document.getElementById('clear-history-settings-btn');
-    if (clearHistoryBtn) {
-        clearHistoryBtn.addEventListener('click', handleClearHistory);
-    }
-}
-
-/**
  * Update a setting
  */
 async function updateSetting(key, value) {
@@ -245,7 +184,22 @@ async function handleLogout() {
         await apiClient.logout();
 
         showToast('已退出登录', 'success');
+
+        // Update the settings tab UI
         await loadApiConfig();
+
+        // Also update the header status bar
+        const tokenStatus = document.getElementById('tokenStatus');
+        if (tokenStatus) {
+            const dot = tokenStatus.querySelector('.status-dot');
+            const text = tokenStatus.querySelector('.status-text');
+
+            if (dot) {
+                dot.classList.remove('online');
+                dot.classList.add('offline');
+            }
+            if (text) text.textContent = '未登录';
+        }
     } catch (error) {
         console.error('Logout failed:', error);
         showToast('退出失败: ' + error.message, 'error');

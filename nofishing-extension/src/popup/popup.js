@@ -109,6 +109,9 @@ async function checkAuth() {
         }
     }
 
+    // Also update the settings tab token status if it exists
+    await loadApiConfig();
+
     // If not authenticated, show login modal immediately
     if (!hasCredentials) {
         setTimeout(() => {
@@ -348,7 +351,6 @@ async function handleLogin() {
         // Update authentication state
         isAuthenticated = true;
         await checkAuth();
-        await loadApiConfig();
 
         // Initialize tabs now that we're authenticated
         if (typeof initHomeTab === 'function') {

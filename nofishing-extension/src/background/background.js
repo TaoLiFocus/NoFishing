@@ -194,11 +194,15 @@ async function handlePhishingUrl(url, result) {
         // Get current tab and redirect to warning page
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         if (tab && tab.id) {
+            // Add defensive check for confidence
+            const confidence = (typeof result.confidence === 'number' && !isNaN(result.confidence))
+                ? result.confidence
+                : 0;
             chrome.tabs.update(tab.id, {
                 url: chrome.runtime.getURL('public/warning.html') +
                       '?url=' + encodeURIComponent(url) +
                       '&risk=' + encodeURIComponent(result.riskLevel) +
-                      '&confidence=' + result.confidence
+                      '&confidence=' + confidence
             });
         }
     }
@@ -212,7 +216,10 @@ async function handlePhishingUrl(url, result) {
  */
 function showNotification(result) {
     const riskLevel = result.riskLevel;
-    const confidence = Math.round(result.confidence * 100);
+    // Add defensive check for confidence
+    const confidence = (typeof result.confidence === 'number' && !isNaN(result.confidence))
+        ? Math.round(result.confidence * 100)
+        : 0;
 
     chrome.notifications.create({
         type: 'basic',
