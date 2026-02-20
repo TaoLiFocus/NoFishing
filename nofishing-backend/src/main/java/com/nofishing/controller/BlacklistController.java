@@ -1,5 +1,6 @@
 package com.nofishing.controller;
 
+import com.nofishing.dto.EntryCreatedResponse;
 import com.nofishing.entity.BlacklistEntry;
 import com.nofishing.service.BlacklistService;
 import jakarta.validation.Valid;
@@ -34,8 +35,8 @@ public class BlacklistController {
     }
 
     @PostMapping
-    public ResponseEntity<BlacklistEntry> create(@Valid @RequestBody BlacklistEntry entry) {
-        BlacklistEntry created = service.create(entry);
+    public ResponseEntity<EntryCreatedResponse> create(@Valid @RequestBody BlacklistEntry entry) {
+        EntryCreatedResponse created = service.createWithResponse(entry);
         return ResponseEntity.ok(created);
     }
 

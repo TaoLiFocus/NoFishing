@@ -197,7 +197,12 @@ async function addToWhitelist() {
         const result = await apiClient.addToWhitelist(tab.url, '通过扩展添加');
         console.log('[NoFishing] Whitelist result:', result);
 
-        showToast('已添加到白名单', 'success');
+        // Check if backend removed from blacklist (mutual exclusion)
+        if (result && result.message) {
+            showToast(result.message, 'success');
+        } else {
+            showToast('已添加到白名单', 'success');
+        }
     } catch (error) {
         console.error('[NoFishing] Failed to add to whitelist:', error);
 

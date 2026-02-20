@@ -1,6 +1,7 @@
 package com.nofishing.service;
 
 import com.nofishing.annotation.Audited;
+import com.nofishing.dto.EntryCreatedResponse;
 import com.nofishing.entity.BlacklistEntry;
 import com.nofishing.repository.BlacklistEntryRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -42,10 +43,12 @@ public class BlacklistService {
         }
 
         // Check if pattern exists in whitelist - if so, remove it for mutual exclusion
+        boolean removedFromWhitelist = false;
         if (whitelistService.existsByPattern(entry.getPattern())) {
             log.info("[MUTEX_CHECK] Pattern {} exists in whitelist, removing for mutual exclusion", entry.getPattern());
             whitelistService.deleteByPattern(entry.getPattern());
             log.info("[MUTEX_CHECK] Successfully removed pattern {} from whitelist", entry.getPattern());
+            removedFromWhitelist = true;
         } else {
             log.info("[MUTEX_CHECK] Pattern {} not found in whitelist", entry.getPattern());
         }
@@ -53,6 +56,44 @@ public class BlacklistService {
         BlacklistEntry saved = repository.save(entry);
         log.info("[MUTEX_CHECK] Successfully created blacklist entry: {}", entry.getPattern());
         return saved;
+    }
+
+    /**
+     * Create blacklist entry and return response with message
+     * This method provides additional feedback about mutual exclusion operations
+     */
+    @Transactional
+    @Audited(operation = "ADD_BLACKLIST", module = "BLACKLIST", targetType = "DOMAIN")
+    public EntryCreatedResponse createWithResponse(BlacklistEntry entry) {
+        log.info("[MUTEX_CHECK] Creating blacklist entry with pattern: {}", entry.getPattern());
+
+        // Check if pattern already exists in blacklist
+        if (repository.existsByPattern(entry.getPattern())) {
+            log.warn("[MUTEX_CHECK] Pattern {} already exists in blacklist, rejecting", entry.getPattern());
+            throw new RuntimeException("Pattern already exists in blacklist");
+        }
+
+        // Check if pattern exists in whitelist - if so, remove it for mutual exclusion
+        boolean removedFromWhitelist = false;
+        if (whitelistService.existsByPattern(entry.getPattern())) {
+            log.info("[MUTEX_CHECK] Pattern {} exists in whitelist, removing for mutual exclusion", entry.getPattern());
+            whitelistService.deleteByPattern(entry.getPattern());
+            log.info("[MUTEX_CHECK] Successfully removed pattern {} from whitelist", entry.getPattern());
+            removedFromWhitelist = true;
+        } else {
+            log.info("[MUTEX_CHECK] Pattern {} not found in whitelist", entry.getPattern());
+        }
+
+        BlacklistEntry saved = repository.save(entry);
+        log.info("[MUTEX_CHECK] Successfully created blacklist entry: {}", entry.getPattern());
+
+        // Build message based on what happened
+        String message = "已添加到黑名单";
+        if (removedFromWhitelist) {
+            message = "已从白名单移除并添加到黑名单";
+        }
+
+        return EntryCreatedResponse.fromBlacklistEntry(saved, message);
     }
 
     @Transactional

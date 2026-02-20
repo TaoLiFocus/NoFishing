@@ -1,5 +1,6 @@
 package com.nofishing.controller;
 
+import com.nofishing.dto.EntryCreatedResponse;
 import com.nofishing.entity.WhitelistEntry;
 import com.nofishing.service.WhitelistService;
 import jakarta.validation.Valid;
@@ -34,8 +35,8 @@ public class WhitelistController {
     }
 
     @PostMapping
-    public ResponseEntity<WhitelistEntry> create(@Valid @RequestBody WhitelistEntry entry) {
-        WhitelistEntry created = service.create(entry);
+    public ResponseEntity<EntryCreatedResponse> create(@Valid @RequestBody WhitelistEntry entry) {
+        EntryCreatedResponse created = service.createWithResponse(entry);
         return ResponseEntity.ok(created);
     }
 
