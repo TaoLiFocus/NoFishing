@@ -194,21 +194,23 @@ async function handlePhishingUrl(url, result) {
         // Get current tab and redirect to warning page
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         if (tab && tab.id) {
-            // Add defensive check for confidence
+            // Add defensive checks for confidence and riskLevel
             const confidence = (typeof result.confidence === 'number' && !isNaN(result.confidence))
                 ? result.confidence
                 : 0;
+            const riskLevel = result.riskLevel || 'CRITICAL';
+
             chrome.tabs.update(tab.id, {
                 url: chrome.runtime.getURL('public/warning.html') +
                       '?url=' + encodeURIComponent(url) +
-                      '&risk=' + encodeURIComponent(result.riskLevel) +
+                      '&risk=' + encodeURIComponent(riskLevel) +
                       '&confidence=' + confidence
             });
         }
     }
 
     // Update badge
-    updateBadge(result.riskLevel);
+    updateBadge(result.riskLevel || 'CRITICAL');
 }
 
 /**

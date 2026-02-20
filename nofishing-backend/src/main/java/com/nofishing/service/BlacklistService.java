@@ -33,18 +33,26 @@ public class BlacklistService {
     @Transactional
     @Audited(operation = "ADD_BLACKLIST", module = "BLACKLIST", targetType = "DOMAIN")
     public BlacklistEntry create(BlacklistEntry entry) {
+        log.info("[MUTEX_CHECK] Creating blacklist entry with pattern: {}", entry.getPattern());
+
         // Check if pattern already exists in blacklist
         if (repository.existsByPattern(entry.getPattern())) {
+            log.warn("[MUTEX_CHECK] Pattern {} already exists in blacklist, rejecting", entry.getPattern());
             throw new RuntimeException("Pattern already exists in blacklist");
         }
 
         // Check if pattern exists in whitelist - if so, remove it for mutual exclusion
         if (whitelistService.existsByPattern(entry.getPattern())) {
-            log.info("Pattern {} exists in whitelist, removing for mutual exclusion", entry.getPattern());
+            log.info("[MUTEX_CHECK] Pattern {} exists in whitelist, removing for mutual exclusion", entry.getPattern());
             whitelistService.deleteByPattern(entry.getPattern());
+            log.info("[MUTEX_CHECK] Successfully removed pattern {} from whitelist", entry.getPattern());
+        } else {
+            log.info("[MUTEX_CHECK] Pattern {} not found in whitelist", entry.getPattern());
         }
 
-        return repository.save(entry);
+        BlacklistEntry saved = repository.save(entry);
+        log.info("[MUTEX_CHECK] Successfully created blacklist entry: {}", entry.getPattern());
+        return saved;
     }
 
     @Transactional
