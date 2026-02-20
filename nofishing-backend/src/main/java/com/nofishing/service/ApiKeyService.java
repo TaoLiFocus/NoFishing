@@ -95,8 +95,10 @@ public class ApiKeyService {
     /**
      * Validate API key and check permission
      */
+    @Transactional(readOnly = true)
     public ApiKey validateKey(String keyValue, String requiredPermission) {
-        ApiKey apiKey = apiKeyRepository.findByKeyValue(keyValue).orElse(null);
+        // Use eager fetch to avoid LazyInitializationException when accessing user.role
+        ApiKey apiKey = apiKeyRepository.findByKeyValueWithUser(keyValue).orElse(null);
 
         if (apiKey == null) {
             return null;

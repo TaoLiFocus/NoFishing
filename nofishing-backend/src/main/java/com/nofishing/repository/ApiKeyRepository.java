@@ -15,6 +15,13 @@ public interface ApiKeyRepository extends JpaRepository<ApiKey, Long> {
 
     Optional<ApiKey> findByKeyValue(String keyValue);
 
+    /**
+     * Find API key by key value with user relationship eagerly loaded
+     * This is needed for authentication to avoid LazyInitializationException
+     */
+    @Query("SELECT ak FROM ApiKey ak LEFT JOIN FETCH ak.user WHERE ak.keyValue = :keyValue")
+    Optional<ApiKey> findByKeyValueWithUser(@org.springframework.data.repository.query.Param("keyValue") String keyValue);
+
     List<ApiKey> findByUserId(Long userId);
 
     List<ApiKey> findByUserIdAndIsEnabledTrue(Long userId);
