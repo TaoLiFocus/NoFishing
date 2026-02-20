@@ -53,8 +53,8 @@ spring:
 # JWT Configuration
 jwt:
   secret: NoFishingSecretKeyForJWTTokenGenerationMustBeLongEnough
-  access-token-expiration: 900000
-  refresh-token-expiration: 604800000
+  access-token-expiration: 86400000  # 24 hours (was 15 minutes)
+  refresh-token-expiration: 604800000  # 7 days
 
 # ML Service Configuration
 ml-service:

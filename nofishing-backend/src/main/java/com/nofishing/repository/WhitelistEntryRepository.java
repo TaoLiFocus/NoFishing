@@ -12,4 +12,9 @@ public interface WhitelistEntryRepository extends JpaRepository<WhitelistEntry, 
     List<WhitelistEntry> findByEnabledTrue();
     Optional<WhitelistEntry> findByPattern(String pattern);
     boolean existsByPattern(String pattern);
+
+    /**
+     * Delete whitelist entry by pattern
+     */
+    void deleteByPattern(String pattern);
 }

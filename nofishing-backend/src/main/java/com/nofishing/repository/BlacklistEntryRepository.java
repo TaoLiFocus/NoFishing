@@ -12,4 +12,9 @@ public interface BlacklistEntryRepository extends JpaRepository<BlacklistEntry, 
     List<BlacklistEntry> findByEnabledTrue();
     Optional<BlacklistEntry> findByPattern(String pattern);
     boolean existsByPattern(String pattern);
+
+    /**
+     * Delete blacklist entry by pattern
+     */
+    void deleteByPattern(String pattern);
 }

@@ -1,5 +1,6 @@
 package com.nofishing.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,9 +28,10 @@ public class MlServiceResponse {
 
     /**
      * Confidence score (0.0 - 1.0)
-     * Mapped from "probability" in ML API response
+     * Accepts both "probability" (preferred) and "confidence" (fallback) fields
+     * to handle different ML API versions
      */
-    @JsonProperty("probability")
+    @JsonAlias({"probability", "confidence"})
     private Double confidence;
 
     /**

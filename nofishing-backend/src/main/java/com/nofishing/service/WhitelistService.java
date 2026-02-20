@@ -23,13 +23,22 @@ import java.util.regex.PatternSyntaxException;
 public class WhitelistService {
 
     private final WhitelistEntryRepository repository;
+    private final BlacklistService blacklistService;
 
     @Transactional
     @Audited(operation = "ADD_WHITELIST", module = "WHITELIST", targetType = "DOMAIN")
     public WhitelistEntry create(WhitelistEntry entry) {
+        // Check if pattern already exists in whitelist
         if (repository.existsByPattern(entry.getPattern())) {
-            throw new RuntimeException("Pattern already exists");
+            throw new RuntimeException("Pattern already exists in whitelist");
         }
+
+        // Check if pattern exists in blacklist - if so, remove it for mutual exclusion
+        if (blacklistService.existsByPattern(entry.getPattern())) {
+            log.info("Pattern {} exists in blacklist, removing for mutual exclusion", entry.getPattern());
+            blacklistService.deleteByPattern(entry.getPattern());
+        }
+
         return repository.save(entry);
     }
 
@@ -113,6 +122,16 @@ public class WhitelistService {
 
     public boolean existsByPattern(String pattern) {
         return repository.existsByPattern(pattern);
+    }
+
+    /**
+     * Delete whitelist entry by pattern (for mutual exclusion with blacklist)
+     */
+    @Transactional
+    @Audited(operation = "DELETE_WHITELIST", module = "WHITELIST", targetType = "DOMAIN")
+    public void deleteByPattern(String pattern) {
+        repository.deleteByPattern(pattern);
+        log.info("Deleted whitelist entry with pattern: {}", pattern);
     }
 
     /**

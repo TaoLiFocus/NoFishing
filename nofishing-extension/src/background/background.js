@@ -223,10 +223,17 @@ function showNotification(result) {
 
     chrome.notifications.create({
         type: 'basic',
+        iconUrl: chrome.runtime.getURL('icons/icon48.png'),
         title: '⚠️ 钓鱼网站警告',
         message: `检测到钓鱼网站！\n风险等级: ${riskLevel}\n置信度: ${confidence}%`,
         priority: 2,
         requireInteraction: true
+    }, (notificationId) => {
+        if (chrome.runtime.lastError) {
+            console.error('[NoFishing] Notification error:', chrome.runtime.lastError);
+        } else {
+            console.log('[NoFishing] Notification created:', notificationId);
+        }
     });
 }
 
