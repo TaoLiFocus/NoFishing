@@ -52,7 +52,7 @@ def classify():
     Response JSON:
     {
         "is_phishing": false,
-        "confidence": 0.95,
+        "probability": 0.95,
         "risk_level": "LOW",
         "features": {...},
         "processing_time_ms": 150
@@ -81,9 +81,22 @@ def classify():
         result['processing_time_ms'] = processing_time
 
         logger.info(f"Classification complete: is_phishing={result['is_phishing']}, "
-                   f"confidence={result['confidence']:.3f}, time={processing_time}ms")
+                   f"probability={result['confidence']:.3f}, time={processing_time}ms")
 
-        return jsonify(result), 200
+        # Map 'confidence' to 'probability' for Java backend compatibility
+        response = {
+            'is_phishing': result['is_phishing'],
+            'probability': result.get('confidence', 0.0),
+            'risk_level': result.get('risk_level', 'LOW'),
+            'features': result.get('features', {}),
+            'processing_time_ms': processing_time
+        }
+
+        # Include error if present
+        if 'error' in result:
+            response['error'] = result['error']
+
+        return jsonify(response), 200
 
     except Exception as e:
         logger.error(f"Error during classification: {e}", exc_info=True)

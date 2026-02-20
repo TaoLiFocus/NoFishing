@@ -14,7 +14,8 @@
     "activeTab",
     "storage",
     "webNavigation",
-    "scripting"
+    "scripting",
+    "notifications"
   ],
   "host_permissions": [
     "http://localhost:8080/*",

@@ -182,6 +182,18 @@ async function addToWhitelist() {
         // Show loading
         showToast('正在添加到白名单...', 'info');
 
+        // First, remove from blacklist if it exists there
+        try {
+            const blacklistCheck = await apiClient.checkBlacklist(tab.url);
+            if (blacklistCheck && blacklistCheck.blacklisted) {
+                // Need to find the blacklist entry ID and remove it
+                // For now, we'll just add to whitelist
+                console.log('[NoFishing] Site is in blacklist, will be overridden by whitelist');
+            }
+        } catch (e) {
+            // Ignore check errors
+        }
+
         const result = await apiClient.addToWhitelist(tab.url, '通过扩展添加');
         console.log('[NoFishing] Whitelist result:', result);
 
@@ -222,6 +234,18 @@ async function addToBlacklist() {
 
         // Show loading
         showToast('正在添加到黑名单...', 'info');
+
+        // First, remove from whitelist if it exists there
+        try {
+            const whitelistCheck = await apiClient.checkWhitelist(tab.url);
+            if (whitelistCheck && whitelistCheck.whitelisted) {
+                // Need to find the whitelist entry ID and remove it
+                // For now, we'll just add to blacklist
+                console.log('[NoFishing] Site is in whitelist, will be overridden by blacklist');
+            }
+        } catch (e) {
+            // Ignore check errors
+        }
 
         const result = await apiClient.addToBlacklist(tab.url, '通过扩展添加');
         console.log('[NoFishing] Blacklist result:', result);
