@@ -63,6 +63,40 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
     // Skip chrome:// and edge:// URLs
     if (url.startsWith('chrome://') || url.startsWith('edge://')) return;
 
+    // Check if URL is in bypass list (user clicked "proceed anyway")
+    const result = await chrome.storage.local.get(['bypassList']);
+    const bypassList = result.bypassList || {};
+    const bypassTime = bypassList[url];
+
+    // Clear expired bypass entries (older than 5 minutes)
+    const now = Date.now();
+    const fiveMinutesAgo = now - (5 * 60 * 1000);
+    let shouldBypass = false;
+
+    if (bypassTime && bypassTime > fiveMinutesAgo) {
+        console.log('[NoFishing] URL in bypass list, allowing:', url);
+        shouldBypass = true;
+        // Remove from bypass list after allowing (one-time bypass)
+        delete bypassList[url];
+        await chrome.storage.local.set({ bypassList });
+    }
+
+    // Clean up old bypass entries
+    for (const key in bypassList) {
+        if (bypassList[key] < fiveMinutesAgo) {
+            delete bypassList[key];
+        }
+    }
+    if (Object.keys(bypassList).length === 0) {
+        await chrome.storage.local.set({ bypassList: {} });
+    } else {
+        await chrome.storage.local.set({ bypassList });
+    }
+
+    if (shouldBypass) {
+        return; // Skip checking for this URL
+    }
+
     // Check settings
     const settings = await getSettings();
     if (!settings.autoScan) return;
@@ -79,11 +113,11 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
 
     // Perform detection
     console.log('[NoFishing] Detecting URL:', url);
-    const result = await detectUrl(url);
+    const detectResult = await detectUrl(url);
 
-    if (result && result.isPhishing) {
-        cacheResult(url, result);
-        await handlePhishingUrl(url, result);
+    if (detectResult && detectResult.isPhishing) {
+        cacheResult(url, detectResult);
+        await handlePhishingUrl(url, detectResult);
     }
 });
 
@@ -340,6 +374,27 @@ async function healthCheck() {
 
 // Periodic health check
 setInterval(healthCheck, 60000);
+
+// Periodic cleanup of bypass list (every 5 minutes)
+setInterval(async () => {
+    const result = await chrome.storage.local.get(['bypassList']);
+    const bypassList = result.bypassList || {};
+    const now = Date.now();
+    const fiveMinutesAgo = now - (5 * 60 * 1000);
+    let cleaned = false;
+
+    for (const key in bypassList) {
+        if (bypassList[key] < fiveMinutesAgo) {
+            delete bypassList[key];
+            cleaned = true;
+        }
+    }
+
+    if (cleaned) {
+        await chrome.storage.local.set({ bypassList });
+        console.log('[NoFishing] Cleaned up expired bypass entries');
+    }
+}, 5 * 60 * 1000);
 
 /**
  * Handle messages from popup

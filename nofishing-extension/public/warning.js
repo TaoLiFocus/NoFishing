@@ -71,10 +71,18 @@ function setupButtonHandlers(url) {
     console.log('[NoFishing] Setting up button handlers');
 
     if (goBackBtn) {
-        goBackBtn.addEventListener('click', () => {
+        goBackBtn.addEventListener('click', async () => {
             console.log('[NoFishing] Go back button clicked');
-            if (window.history.length > 1) {
-                window.history.back();
+            // Use chrome.tabs API to go back - this avoids triggering the navigation listener again
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (tab) {
+                // Go back twice: once from warning page, once from the blocked URL
+                chrome.tabs.goBack(tab.id, {}, () => {
+                    // Second go back after a short delay
+                    setTimeout(() => {
+                        chrome.tabs.goBack(tab.id);
+                    }, 100);
+                });
             } else {
                 window.close();
             }
@@ -89,12 +97,26 @@ function setupButtonHandlers(url) {
     }
 
     if (proceedBtn) {
-        proceedBtn.addEventListener('click', () => {
+        proceedBtn.addEventListener('click', async () => {
             console.log('[NoFishing] Proceed button clicked, URL:', url);
             const confirmMsg = chrome.i18n.getMessage('areYouSureToProceed') || '您确定要继续吗？这不推荐。';
             if (confirm(confirmMsg)) {
                 if (url) {
-                    window.location.href = url;
+                    // Add this URL to temporary bypass list so background.js won't block it
+                    const bypassList = await new Promise(resolve => {
+                        chrome.storage.local.get(['bypassList'], (data) => resolve(data.bypassList || {}));
+                    });
+                    bypassList[url] = Date.now();
+                    await new Promise(resolve => {
+                        chrome.storage.local.set({ bypassList }, resolve);
+                    });
+                    console.log('[NoFishing] Added to bypass list:', url);
+
+                    // Navigate using chrome.tabs API instead of window.location
+                    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+                    if (tab) {
+                        chrome.tabs.update(tab.id, { url: url });
+                    }
                 }
             }
         });

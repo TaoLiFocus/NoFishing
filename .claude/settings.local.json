@@ -10,7 +10,11 @@
       "Bash(git push:*)",
       "Bash(nofishing-extension/src/utils/storage.js:*)",
       "Bash(nofishing-extension/src/tabs/home-tab.js:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(ls:*)",
+      "Bash(curl:*)",
+      "Bash(python:*)",
+      "Bash(mvn clean compile:*)"
     ]
   }
 }
