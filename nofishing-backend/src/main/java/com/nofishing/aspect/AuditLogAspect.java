@@ -60,6 +60,7 @@ public class AuditLogAspect {
         // Get current user
         String username = getCurrentUsername();
         auditLog.setOperatedBy(username);
+        log.debug("Audit log: operation={}, module={}, operatedBy={}", audited.operation(), audited.module(), username);
 
         // Get request info
         HttpServletRequest request = getCurrentRequest();
@@ -99,11 +100,18 @@ public class AuditLogAspect {
      * Get current username from security context
      */
     private String getCurrentUsername() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated()) {
-            return authentication.getName();
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null && authentication.isAuthenticated()) {
+                String username = authentication.getName();
+                if (username != null && !username.isEmpty() && !"anonymousUser".equals(username)) {
+                    return username;
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to get username from security context", e);
         }
-        return "ANONYMOUS";
+        return "SYSTEM";
     }
 
     /**

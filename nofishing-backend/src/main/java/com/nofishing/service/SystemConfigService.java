@@ -112,19 +112,47 @@ public class SystemConfigService {
         if (existing.isPresent()) {
             SystemConfig config = existing.get();
             config.setConfigValue(configValue);
-            config.setCategory(category);
-            config.setUpdatedBy(updatedBy);
+
+            // Only update category if provided
+            if (category != null) {
+                config.setCategory(category);
+            }
+
+            // Only update description if provided
             if (description != null) {
                 config.setDescription(description);
             }
+
+            // Ensure category and description are set if missing
+            if (config.getCategory() == null || config.getCategory().isEmpty()) {
+                config.setCategory(getCategoryForKey(configKey));
+            }
+            if (config.getDescription() == null || config.getDescription().isEmpty()) {
+                config.setDescription(getDescriptionForKey(configKey));
+            }
+
+            config.setUpdatedBy(updatedBy);
             log.info("Updated config: {} = {} by {}", configKey, configValue, updatedBy);
             return repository.save(config);
         } else {
             SystemConfig newConfig = new SystemConfig();
             newConfig.setConfigKey(configKey);
             newConfig.setConfigValue(configValue);
-            newConfig.setDescription(description);
-            newConfig.setCategory(category);
+
+            // Set default description if not provided
+            if (description == null || description.isEmpty()) {
+                newConfig.setDescription(getDescriptionForKey(configKey));
+            } else {
+                newConfig.setDescription(description);
+            }
+
+            // Set default category if not provided
+            if (category == null || category.isEmpty()) {
+                newConfig.setCategory(getCategoryForKey(configKey));
+            } else {
+                newConfig.setCategory(category);
+            }
+
             newConfig.setUpdatedBy(updatedBy);
             log.info("Created config: {} = {} by {}", configKey, configValue, updatedBy);
             return repository.save(newConfig);

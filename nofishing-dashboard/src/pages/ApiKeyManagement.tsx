@@ -56,9 +56,11 @@ const ApiKeyManagement: React.FC = () => {
     setLoading(true);
     try {
       const response = await apiKeyApi.getAllKeys();
-      setData(response.data);
+      setData(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
+      console.error('获取API密钥失败:', error);
       message.error('获取API密钥失败');
+      setData([]);
     } finally {
       setLoading(false);
     }
@@ -67,9 +69,10 @@ const ApiKeyManagement: React.FC = () => {
   const fetchUsers = async () => {
     try {
       const response = await userApi.getUsers({ page: 0, size: 1000 });
-      setUsers(response.data.content);
+      setUsers(response.data?.content || []);
     } catch (error) {
       console.error('获取用户列表失败', error);
+      setUsers([]);
     }
   };
 
@@ -93,18 +96,28 @@ const ApiKeyManagement: React.FC = () => {
         expiresAt: values.expiresAt ? values.expiresAt.toISOString() : undefined,
       };
       const response = await apiKeyApi.createKey(requestData);
-      setCreatedKey(response.data.keyValue);
-      message.success('API密钥创建成功');
-      fetchKeys();
-    } catch (error) {
+      if (response.data?.keyValue) {
+        setCreatedKey(response.data.keyValue);
+        message.success('API密钥创建成功');
+        fetchKeys();
+      } else {
+        message.error('创建API密钥失败：响应数据异常');
+      }
+    } catch (error: any) {
       console.error('创建API密钥失败:', error);
-      message.error('创建API密钥失败');
+      const errorMsg = error?.response?.data?.message || error?.message || '创建API密钥失败';
+      message.error(errorMsg);
     }
   };
 
   const handleCopy = (keyValue: string) => {
-    navigator.clipboard.writeText(keyValue);
-    message.success('API密钥已复制到剪贴板');
+    try {
+      navigator.clipboard.writeText(keyValue);
+      message.success('API密钥已复制到剪贴板');
+    } catch (error) {
+      console.error('复制失败:', error);
+      message.error('复制失败，请手动复制');
+    }
   };
 
   const handleDisable = async (id: number) => {
@@ -150,19 +163,22 @@ const ApiKeyManagement: React.FC = () => {
       dataIndex: 'keyValue',
       key: 'keyValue',
       width: 200,
-      render: (keyValue: string) => (
-        <Space>
-          <Tooltip title="点击复制">
-            <Tag
-              icon={<CopyOutlined />}
-              style={{ cursor: 'pointer' }}
-              onClick={() => handleCopy(keyValue)}
-            >
-              {keyValue.substring(0, 12)}...
-            </Tag>
-          </Tooltip>
-        </Space>
-      ),
+      render: (keyValue: string) => {
+        if (!keyValue) return <Tag>-</Tag>;
+        return (
+          <Space>
+            <Tooltip title="点击复制">
+              <Tag
+                icon={<CopyOutlined />}
+                style={{ cursor: 'pointer' }}
+                onClick={() => handleCopy(keyValue)}
+              >
+                {keyValue.substring(0, 12)}...
+              </Tag>
+            </Tooltip>
+          </Space>
+        );
+      },
     },
     {
       title: '用户',
@@ -172,7 +188,7 @@ const ApiKeyManagement: React.FC = () => {
       render: (username: string) => (
         <Space>
           <UserOutlined />
-          {username}
+          {username || '-'}
         </Space>
       ),
     },

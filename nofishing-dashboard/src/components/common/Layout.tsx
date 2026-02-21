@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layout, Menu, Dropdown, Avatar, Button } from 'antd';
+import { Layout, Menu, Dropdown, Avatar, Button, Typography } from 'antd';
 import {
   HomeOutlined,
   SafetyOutlined,
@@ -16,12 +16,14 @@ import {
   SettingOutlined,
   FileTextOutlined,
   ApiOutlined,
+  SecurityScanOutlined as SecurityIcon,
 } from '@ant-design/icons';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import './Layout.css';
 
 const { Header, Sider, Content } = Layout;
+const { Text } = Typography;
 
 const AppLayout: React.FC = () => {
   const { user, logout, isAdmin } = useAuth();
@@ -89,12 +91,16 @@ const AppLayout: React.FC = () => {
       </Sider>
       <Layout>
         <Header className="header">
-          <Button
-            type="text"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => setCollapsed(!collapsed)}
-            className="collapse-btn"
-          />
+          <div className="header-left">
+            <SecurityIcon style={{ fontSize: 24, color: '#1890ff', marginRight: 8 }} />
+            <Text strong style={{ fontSize: 18, marginRight: 12 }}>NoFishing</Text>
+            <Button
+              type="text"
+              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+              onClick={() => setCollapsed(!collapsed)}
+              className="collapse-btn"
+            />
+          </div>
           <div className="header-right">
             <span className="username">{user?.username}</span>
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
