@@ -235,6 +235,27 @@ async function addToWhitelist() {
         const result = await apiClient.addToWhitelist(domain, '通过扩展添加');
         console.log('[NoFishing] Whitelist result:', result);
 
+        // Clear cache for this domain to refresh status immediately
+        await chrome.runtime.sendMessage({ action: 'clearCache' });
+
+        // Reload site info to show updated status
+        const [currentTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (currentTab && currentTab.url) {
+            const currentDomain = apiClient.extractDomain(currentTab.url);
+            if (currentDomain === domain) {
+                // Create mock whitelist result for immediate display
+                const whitelistResult = {
+                    url: currentTab.url,
+                    isPhishing: false,
+                    confidence: 0,
+                    riskLevel: 'SAFE_WHITELIST',
+                    processingTimeMs: 0,
+                    inWhitelist: true
+                };
+                updateSiteInfo(currentTab.url, whitelistResult);
+            }
+        }
+
         // Check if backend removed from blacklist (mutual exclusion)
         if (result && result.message) {
             showToast(result.message, 'success');
@@ -294,6 +315,27 @@ async function addToBlacklist() {
 
         const result = await apiClient.addToBlacklist(domain, '通过扩展添加');
         console.log('[NoFishing] Blacklist result:', result);
+
+        // Clear cache for this domain to refresh status immediately
+        await chrome.runtime.sendMessage({ action: 'clearCache' });
+
+        // Reload site info to show updated status
+        const [currentTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (currentTab && currentTab.url) {
+            const currentDomain = apiClient.extractDomain(currentTab.url);
+            if (currentDomain === domain) {
+                // Create mock blacklist result for immediate display
+                const blacklistResult = {
+                    url: currentTab.url,
+                    isPhishing: true,
+                    confidence: 1.0,
+                    riskLevel: 'CRITICAL_BLACKLIST',
+                    processingTimeMs: 0,
+                    inBlacklist: true
+                };
+                updateSiteInfo(currentTab.url, blacklistResult);
+            }
+        }
 
         showToast(`已添加域名 ${domain} 到黑名单`, 'success');
     } catch (error) {
