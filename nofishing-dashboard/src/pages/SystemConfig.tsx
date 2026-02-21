@@ -80,8 +80,10 @@ const SystemConfig: React.FC = () => {
       await systemApi.updateConfig(configKey, String(value));
       message.success('配置更新成功');
       fetchConfigs();
-    } catch (error) {
-      message.error('配置更新失败');
+    } catch (error: any) {
+      console.error('配置更新失败:', error);
+      const errorMsg = error?.response?.data?.message || error?.message || '配置更新失败';
+      message.error(errorMsg);
     } finally {
       setSaving((prev) => ({ ...prev, [configKey]: false }));
     }
@@ -106,6 +108,11 @@ const SystemConfig: React.FC = () => {
                       'ml.service.read-timeout'].includes(config.configKey);
     const isBoolean = ['registration.enabled', 'maintenance.mode'].includes(config.configKey);
 
+    // Add null safety
+    if (!config || !config.configKey) {
+      return null;
+    }
+
     return (
       <div key={config.configKey} style={{ marginBottom: 16 }}>
         <Descriptions column={1} size="small">
@@ -113,7 +120,7 @@ const SystemConfig: React.FC = () => {
             <Space>
               {isNumber ? (
                 <InputNumber
-                  defaultValue={parseFloat(config.configValue)}
+                  defaultValue={parseFloat(config.configValue || '0')}
                   min={0}
                   max={config.configKey.includes('threshold') ? 1 : 100000}
                   step={config.configKey.includes('threshold') ? 0.1 : 100}
@@ -133,7 +140,7 @@ const SystemConfig: React.FC = () => {
                 />
               ) : (
                 <Input
-                  defaultValue={config.configValue}
+                  defaultValue={config.configValue || ''}
                   onBlur={(e) => handleUpdate(config.configKey, e.target.value)}
                   style={{ width: 300 }}
                   suffix={saving[config.configKey] && <span style={{ color: '#1890ff' }}>保存中...</span>}
@@ -141,7 +148,7 @@ const SystemConfig: React.FC = () => {
               )}
             </Space>
           </Descriptions.Item>
-          <Descriptions.Item label="说明">{config.description}</Descriptions.Item>
+          <Descriptions.Item label="说明">{config.description || '-'}</Descriptions.Item>
         </Descriptions>
       </div>
     );

@@ -78,29 +78,27 @@ const AppLayout: React.FC = () => {
         onCollapse={setCollapsed}
         theme="light"
       >
-        <div className="logo">
-          <span className={collapsed ? 'logo-collapsed' : ''}>NoFishing</span>
-        </div>
         <Menu
           theme="light"
           mode="inline"
           selectedKeys={[location.pathname]}
           items={menuItems}
           onClick={handleClick}
+          style={{ marginTop: 16 }}
         />
       </Sider>
       <Layout>
         <Header className="header">
           <div className="header-left">
             <SecurityIcon style={{ fontSize: 24, color: '#1890ff', marginRight: 8 }} />
-            <Text strong style={{ fontSize: 18, marginRight: 12 }}>NoFishing</Text>
-            <Button
-              type="text"
-              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-              onClick={() => setCollapsed(!collapsed)}
-              className="collapse-btn"
-            />
+            <Text strong style={{ fontSize: 18 }}>NoFishing</Text>
           </div>
+          <Button
+            type="text"
+            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            onClick={() => setCollapsed(!collapsed)}
+            className="collapse-btn-header"
+          />
           <div className="header-right">
             <span className="username">{user?.username}</span>
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
