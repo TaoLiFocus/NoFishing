@@ -179,29 +179,31 @@ async function addToWhitelist() {
             return;
         }
 
+        // Extract domain from URL (remove path/route)
+        const domain = apiClient.extractDomain(tab.url);
+        if (!domain) {
+            showToast('无法解析域名', 'error');
+            return;
+        }
+
+        // Check for duplicates in both whitelist and blacklist
+        const duplicateCheck = await apiClient.checkDuplicateDomain(domain);
+        if (duplicateCheck.exists) {
+            showToast(duplicateCheck.message, 'warning');
+            return;
+        }
+
         // Show loading
         showToast('正在添加到白名单...', 'info');
 
-        // First, remove from blacklist if it exists there
-        try {
-            const blacklistCheck = await apiClient.checkBlacklist(tab.url);
-            if (blacklistCheck && blacklistCheck.blacklisted) {
-                // Need to find the blacklist entry ID and remove it
-                // For now, we'll just add to whitelist
-                console.log('[NoFishing] Site is in blacklist, will be overridden by whitelist');
-            }
-        } catch (e) {
-            // Ignore check errors
-        }
-
-        const result = await apiClient.addToWhitelist(tab.url, '通过扩展添加');
+        const result = await apiClient.addToWhitelist(domain, '通过扩展添加');
         console.log('[NoFishing] Whitelist result:', result);
 
         // Check if backend removed from blacklist (mutual exclusion)
         if (result && result.message) {
             showToast(result.message, 'success');
         } else {
-            showToast('已添加到白名单', 'success');
+            showToast(`已添加域名 ${domain} 到白名单`, 'success');
         }
     } catch (error) {
         console.error('[NoFishing] Failed to add to whitelist:', error);
@@ -237,25 +239,27 @@ async function addToBlacklist() {
             return;
         }
 
+        // Extract domain from URL (remove path/route)
+        const domain = apiClient.extractDomain(tab.url);
+        if (!domain) {
+            showToast('无法解析域名', 'error');
+            return;
+        }
+
+        // Check for duplicates in both whitelist and blacklist
+        const duplicateCheck = await apiClient.checkDuplicateDomain(domain);
+        if (duplicateCheck.exists) {
+            showToast(duplicateCheck.message, 'warning');
+            return;
+        }
+
         // Show loading
         showToast('正在添加到黑名单...', 'info');
 
-        // First, remove from whitelist if it exists there
-        try {
-            const whitelistCheck = await apiClient.checkWhitelist(tab.url);
-            if (whitelistCheck && whitelistCheck.whitelisted) {
-                // Need to find the whitelist entry ID and remove it
-                // For now, we'll just add to blacklist
-                console.log('[NoFishing] Site is in whitelist, will be overridden by blacklist');
-            }
-        } catch (e) {
-            // Ignore check errors
-        }
-
-        const result = await apiClient.addToBlacklist(tab.url, '通过扩展添加');
+        const result = await apiClient.addToBlacklist(domain, '通过扩展添加');
         console.log('[NoFishing] Blacklist result:', result);
 
-        showToast('已添加到黑名单', 'success');
+        showToast(`已添加域名 ${domain} 到黑名单`, 'success');
     } catch (error) {
         console.error('[NoFishing] Failed to add to blacklist:', error);
 

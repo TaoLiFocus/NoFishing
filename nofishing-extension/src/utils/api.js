@@ -372,6 +372,50 @@ class ApiClient {
             return { status: 'down', mlService: 'DOWN' };
         }
     }
+
+    // ==================== Utility Functions ====================
+
+    /**
+     * Extract domain from URL
+     * @param {string} url - Full URL (e.g., https://www.example.com/path/page)
+     * @returns {string|null} - Domain (e.g., www.example.com) or null if invalid
+     */
+    extractDomain(url) {
+        try {
+            const urlObj = new URL(url);
+            return urlObj.hostname;
+        } catch (e) {
+            console.error('[NoFishing] Failed to extract domain from URL:', url, e);
+            return null;
+        }
+    }
+
+    /**
+     * Check if domain already exists in whitelist or blacklist
+     * @param {string} domain - Domain to check (e.g., www.example.com)
+     * @returns {Promise<Object>} - Object with exists, list, and message properties
+     */
+    async checkDuplicateDomain(domain) {
+        try {
+            // Check both lists concurrently
+            const [whitelistResult, blacklistResult] = await Promise.all([
+                this.checkWhitelist(domain).catch(() => ({ whitelisted: false })),
+                this.checkBlacklist(domain).catch(() => ({ blacklisted: false }))
+            ]);
+
+            if (whitelistResult?.whitelisted) {
+                return { exists: true, list: 'whitelist', message: '该域名已在白名单中' };
+            }
+            if (blacklistResult?.blacklisted) {
+                return { exists: true, list: 'blacklist', message: '该域名已在黑名单中' };
+            }
+            return { exists: false };
+        } catch (error) {
+            console.error('[NoFishing] Duplicate check failed:', error);
+            // On error, allow the operation to proceed
+            return { exists: false };
+        }
+    }
 }
 
 // Create singleton instance
