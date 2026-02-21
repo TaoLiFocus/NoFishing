@@ -66,20 +66,33 @@ function updateSiteInfo(url, result) {
         return;
     }
 
-    // Update status
-    if (result.isPhishing) {
+    // Update status based on result type
+    if (result.inWhitelist) {
+        statusElement.textContent = '白名单域名';
+        statusElement.className = 'site-status whitelist';
+        confidenceElement.textContent = '已信任';
+    } else if (result.inBlacklist) {
+        statusElement.textContent = '黑名单域名';
+        statusElement.className = 'site-status blacklist';
+        const confidence = (typeof result.confidence === 'number' && !isNaN(result.confidence))
+            ? Math.round(result.confidence * 100)
+            : 100;
+        confidenceElement.textContent = `置信度: ${confidence}%`;
+    } else if (result.isPhishing) {
         statusElement.textContent = '检测到钓鱼网站';
         statusElement.className = 'site-status danger';
+        const confidence = (typeof result.confidence === 'number' && !isNaN(result.confidence))
+            ? Math.round(result.confidence * 100)
+            : 0;
+        confidenceElement.textContent = `置信度: ${confidence}%`;
     } else {
         statusElement.textContent = '安全';
         statusElement.className = 'site-status safe';
+        const confidence = (typeof result.confidence === 'number' && !isNaN(result.confidence))
+            ? Math.round(result.confidence * 100)
+            : 0;
+        confidenceElement.textContent = `置信度: ${confidence}%`;
     }
-
-    // Update confidence with defensive check
-    const confidence = (typeof result.confidence === 'number' && !isNaN(result.confidence))
-        ? Math.round(result.confidence * 100)
-        : 0;
-    confidenceElement.textContent = `置信度: ${confidence}%`;
 }
 
 /**

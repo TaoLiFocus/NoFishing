@@ -231,6 +231,14 @@ header {
     color: var(--danger);
 }
 
+.site-status.whitelist {
+    color: #52c41a;
+}
+
+.site-status.blacklist {
+    color: #ff4d4f;
+}
+
 .site-confidence {
     font-size: 12px;
     color: var(--text-secondary);

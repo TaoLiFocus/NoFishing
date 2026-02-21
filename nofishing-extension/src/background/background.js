@@ -7,6 +7,8 @@
 const BACKEND_API_URL = 'http://localhost:8080/api/v1';
 const DETECT_ENDPOINT = `${BACKEND_API_URL}/detect`;
 const HEALTH_ENDPOINT = `${BACKEND_API_URL}/health`;
+const WHITELIST_CHECK_ENDPOINT = `${BACKEND_API_URL}/whitelist/check`;
+const BLACKLIST_CHECK_ENDPOINT = `${BACKEND_API_URL}/blacklist/check`;
 
 // Cache settings
 const CACHE_TTL = 3600000;
@@ -50,6 +52,62 @@ async function getAuthHeaders() {
     }
 
     return headers;
+}
+
+/**
+ * Extract domain from URL
+ */
+function extractDomain(url) {
+    try {
+        const urlObj = new URL(url);
+        return urlObj.hostname;
+    } catch (e) {
+        return null;
+    }
+}
+
+/**
+ * Check if URL is in whitelist
+ */
+async function checkWhitelist(url) {
+    try {
+        const headers = await getAuthHeaders();
+        const response = await fetch(`${WHITELIST_CHECK_ENDPOINT}?url=${encodeURIComponent(url)}`, {
+            method: 'GET',
+            headers: headers
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            return data.whitelisted || false;
+        }
+        return false;
+    } catch (error) {
+        console.error('[NoFishing] Whitelist check failed:', error);
+        return false;
+    }
+}
+
+/**
+ * Check if URL is in blacklist
+ */
+async function checkBlacklist(url) {
+    try {
+        const headers = await getAuthHeaders();
+        const response = await fetch(`${BLACKLIST_CHECK_ENDPOINT}?url=${encodeURIComponent(url)}`, {
+            method: 'GET',
+            headers: headers
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            return data.blacklisted || false;
+        }
+        return false;
+    } catch (error) {
+        console.error('[NoFishing] Blacklist check failed:', error);
+        return false;
+    }
 }
 
 /**
@@ -111,7 +169,42 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
         return;
     }
 
-    // Perform detection
+    // PRIORITY 1: Check whitelist first
+    const isWhitelisted = await checkWhitelist(url);
+    if (isWhitelisted) {
+        console.log('[NoFishing] URL is in whitelist:', url);
+        const whitelistResult = {
+            url: url,
+            isPhishing: false,
+            confidence: 0,
+            riskLevel: 'SAFE_WHITELIST',
+            processingTimeMs: 0,
+            inWhitelist: true
+        };
+        cacheResult(url, whitelistResult);
+        await addToHistory(whitelistResult);
+        return;
+    }
+
+    // PRIORITY 2: Check blacklist
+    const isBlacklisted = await checkBlacklist(url);
+    if (isBlacklisted) {
+        console.log('[NoFishing] URL is in blacklist:', url);
+        const blacklistResult = {
+            url: url,
+            isPhishing: true,
+            confidence: 1.0,
+            riskLevel: 'CRITICAL_BLACKLIST',
+            processingTimeMs: 0,
+            inBlacklist: true
+        };
+        cacheResult(url, blacklistResult);
+        await addToHistory(blacklistResult);
+        await handlePhishingUrl(url, blacklistResult);
+        return;
+    }
+
+    // PRIORITY 3: Perform ML detection
     console.log('[NoFishing] Detecting URL:', url);
     const detectResult = await detectUrl(url);
 
