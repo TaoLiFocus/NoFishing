@@ -23,10 +23,17 @@ async function loadCurrentSiteInfo() {
             return;
         }
 
-        // Get cached result from background script
+        // Extract domain from URL for cache lookup
+        const domain = apiClient.extractDomain(tab.url);
+        if (!domain) {
+            updateSiteInfo(tab.url, null);
+            return;
+        }
+
+        // Get cached result from background script using domain
         const response = await chrome.runtime.sendMessage({
             action: 'getCachedResult',
-            url: tab.url
+            url: domain
         });
 
         if (response && response.result) {
@@ -155,6 +162,12 @@ async function scanCurrentSite() {
             return;
         }
 
+        // Clear cache for this domain to force fresh check
+        const domain = apiClient.extractDomain(tab.url);
+        if (domain) {
+            await chrome.runtime.sendMessage({ action: 'clearCache' });
+        }
+
         // Show loading state
         scanBtn.disabled = true;
         scanBtn.innerHTML = '<span class="spinner"></span> 扫描中...';
@@ -168,7 +181,17 @@ async function scanCurrentSite() {
         if (response && response.error) {
             showToast(response.error, 'error');
         } else if (response) {
-            updateSiteInfo(tab.url, response);
+            // Get cached result which will now have updated status
+            const cacheResponse = await chrome.runtime.sendMessage({
+                action: 'getCachedResult',
+                url: domain || tab.url
+            });
+
+            if (cacheResponse && cacheResponse.result) {
+                updateSiteInfo(tab.url, cacheResponse.result);
+            } else {
+                updateSiteInfo(tab.url, response);
+            }
             showToast('扫描完成', 'success');
         }
     } catch (error) {

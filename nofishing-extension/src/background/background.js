@@ -121,6 +121,10 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
     // Skip chrome:// and edge:// URLs
     if (url.startsWith('chrome://') || url.startsWith('edge://')) return;
 
+    // Extract domain for list checks and caching
+    const domain = extractDomain(url);
+    if (!domain) return;
+
     // Check if URL is in bypass list (user clicked "proceed anyway")
     const result = await chrome.storage.local.get(['bypassList']);
     const bypassList = result.bypassList || {};
@@ -159,20 +163,20 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
     const settings = await getSettings();
     if (!settings.autoScan) return;
 
-    // Check cache first
-    const cachedResult = getCachedResult(url);
+    // Check cache first (use domain as cache key)
+    const cachedResult = getCachedResult(domain);
     if (cachedResult) {
-        console.log('[NoFishing] Cache HIT:', url, cachedResult);
+        console.log('[NoFishing] Cache HIT:', domain, cachedResult);
         if (cachedResult.isPhishing) {
             await handlePhishingUrl(url, cachedResult);
         }
         return;
     }
 
-    // PRIORITY 1: Check whitelist first
-    const isWhitelisted = await checkWhitelist(url);
+    // PRIORITY 1: Check whitelist first (use domain for check)
+    const isWhitelisted = await checkWhitelist(domain);
     if (isWhitelisted) {
-        console.log('[NoFishing] URL is in whitelist:', url);
+        console.log('[NoFishing] Domain is in whitelist:', domain);
         const whitelistResult = {
             url: url,
             isPhishing: false,
@@ -181,15 +185,15 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
             processingTimeMs: 0,
             inWhitelist: true
         };
-        cacheResult(url, whitelistResult);
+        cacheResult(domain, whitelistResult);
         await addToHistory(whitelistResult);
         return;
     }
 
-    // PRIORITY 2: Check blacklist
-    const isBlacklisted = await checkBlacklist(url);
+    // PRIORITY 2: Check blacklist (use domain for check)
+    const isBlacklisted = await checkBlacklist(domain);
     if (isBlacklisted) {
-        console.log('[NoFishing] URL is in blacklist:', url);
+        console.log('[NoFishing] Domain is in blacklist:', domain);
         const blacklistResult = {
             url: url,
             isPhishing: true,
@@ -198,7 +202,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
             processingTimeMs: 0,
             inBlacklist: true
         };
-        cacheResult(url, blacklistResult);
+        cacheResult(domain, blacklistResult);
         await addToHistory(blacklistResult);
         await handlePhishingUrl(url, blacklistResult);
         return;
@@ -208,9 +212,11 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
     console.log('[NoFishing] Detecting URL:', url);
     const detectResult = await detectUrl(url);
 
-    if (detectResult && detectResult.isPhishing) {
-        cacheResult(url, detectResult);
-        await handlePhishingUrl(url, detectResult);
+    if (detectResult) {
+        cacheResult(domain, detectResult);
+        if (detectResult.isPhishing) {
+            await handlePhishingUrl(url, detectResult);
+        }
     }
 });
 
@@ -435,7 +441,7 @@ async function getSettings() {
     return new Promise((resolve) => {
         chrome.storage.local.get(['settings'], (result) => {
             const defaults = {
-                autoBlock: false,
+                autoBlock: true,
                 showNotifications: true,
                 autoScan: true,
                 sensitivity: 'medium'
